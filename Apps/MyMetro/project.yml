@@ -1,0 +1,104 @@
+############
+# MyMetro
+############
+
+options:
+  bundleIdPrefix: au.mymetro
+
+targets:
+  App:
+    sources:
+      - path: Apps/MyMetro
+        name: App
+        group: MyMetro
+      - path: Apps/Shared/Analytics
+        name: Analytics
+        group: MyMetro
+      - path: Apps/Shared/CommonClient
+        name: Common
+        group: MyMetro
+      - path: Apps/Shared/OneSignal
+        name: OneSignal
+        group: MyMetro
+    dependencies:
+      - package: OneSignal
+    entitlements:
+      path: Apps/MyMetro/MyMetro.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.au.mymetro.iphone
+        com.apple.developer.associated-domains:
+          - applinks:mymetro.au
+          - applinks:www.mymetro.au
+          - applinks:nautilus-tech.com.au
+    info:
+      path: Apps/MyMetro/Info.plist
+      properties:
+        CFBundleDisplayName: MyMetro
+        CFBundleURLTypes: [{CFBundleTypeRole: "Editor", CFBundleURLIconFile: "", CFBundleURLName: "mymetro", CFBundleURLSchemes: ["mymetro"]}]
+#        LSApplicationQueriesSchemes:
+#          - fb
+#          - twitter
+#          - comgooglemaps
+#          - fb313213768708402HART
+#          - org.sdmts.riderapp.compassmobile.payments
+#          - org.sdmts.pronto
+#          - co.bytemark.tgt
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+          NSExceptionDomains: {
+            "mymetro.au": {
+                NSIncludesSubdomains: true,
+                NSExceptionAllowsInsecureHTTPLoads: true
+            }
+          }
+        NSHumanReadableCopyright: © Nautilus Technology
+        NSUserActivityTypes:
+          - au.mymetro.iphone.user_activity.stop
+          - au.mymetro.iphone.user_activity.trip
+        OBAKitConfig:
+          AppDevelopersEmailAddress: mymetro@nautilus-tech.com.au
+          AppGroup: group.au.mymetro.iphone
+          BundledRegionsFileName: regions.json
+          DeepLinkServerBaseAddress: https://onebusaway.co
+          ExtensionURLScheme: mymetro
+          PrivacyPolicyURL: https://mymetro.au/privacy-policy/
+          PushNotificationAPIKey: d5d0d28a-6091-46cd-9627-0ce01ffa9f9e
+          RESTServerAPIKey: org.onebusaway.iphone
+          RegionsServerBaseAddress: https://regions.mymetro.au
+          RegionsServerAPIPath: /regions-v3.json
+    settings:
+      base:
+#        DEVELOPMENT_TEAM: 4ZQCMA634J
+        PRODUCT_BUNDLE_IDENTIFIER: au.mymetro.iphone
+  TodayView:
+    sources: ["Apps/MyMetro/Assets.xcassets"]
+    entitlements:
+      properties:
+        com.apple.security.application-groups:
+          - group.au.mymetro.iphone
+    info:
+      properties:
+        CFBundleDisplayName: MyMetro
+        OBAKitConfig:
+          AppGroup: group.au.mymetro.iphone
+          BundledRegionsFileName: regions.json
+          DeepLinkServerBaseAddress: https://mymetro.au
+          ExtensionURLScheme: mymetro
+          RESTServerAPIKey: org.onebusaway.iphone
+          RegionsServerBaseAddress: https://regions.mymetro.au
+          RegionsServerAPIPath: /regions-v3.json
+    settings:
+      base:
+        #DEVELOPMENT	TEAM: 4ZQCMA634J
+        PRODUCT_BUNDLE_IDENTIFIER: au.mymetro.iphone.TodayView
+
+include:
+  - path: Apps/Shared/app_shared.yml
+  - path: Apps/Shared/analytics_fx_config.yml
+  - path: Apps/Shared/push_config.yml
+  - path: OBAKitCore/project.yml
+  - path: OBAKit/project.yml
+  - path: OBAKitTests/project.yml
+  - path: OBAKitUITests/project.yml
+  - path: TodayView/project.yml

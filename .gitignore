@@ -56,3 +56,5 @@ docs
 
 # But do save the docs script
 !scripts/docs
+Apps/MyMetro/.DS_Store
+Apps/MyMetro/Resources/GoogleService-Info.plist
