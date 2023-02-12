@@ -186,7 +186,7 @@ public class MapRegionManager: NSObject,
             mapViewShowsScaleKey: true,
             mapViewShowsHeadingKey: true,
             mapViewMapTypeKey: MKMapType.mutedStandard.rawValue,
-            MapRegionManager.mapViewShowsStopAnnotationLabelsDefaultsKey: true,
+            MapRegionManager.mapViewShowsStopAnnotationLabelsDefaultsKey: false,
         ])
 
         super.init()

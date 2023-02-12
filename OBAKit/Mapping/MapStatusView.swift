@@ -178,10 +178,10 @@ class MapStatusView: UIView {
         case .locationServicesUnavailable, .locationServicesOn:
             return nil
         case .locationServicesOff, .notDetermined:
-            title = OBALoc("locationservices_alert_off.title", value: "OneBusAway works best with your location.", comment: "")
+            title = OBALoc("locationservices_alert_off.title", value: "MyMetro works best with your location.", comment: "")
             message = OBALoc("locationservices_alert_off.message", value: "You'll get to see where you are on the map and see nearby stops, making it easier to get where you need to go.", comment: "")
         case .impreciseLocation:
-            title = OBALoc("locationservices_alert_imprecise.title", value: "OneBusAway works best with your precise location", comment: "")
+            title = OBALoc("locationservices_alert_imprecise.title", value: "MyMetro works best with your precise location", comment: "")
             message = OBALoc("locationservices_alert_imprecise.message", value: "You'll get to see where you are on the map and see nearby stops, making it easier to get where you need to go.", comment: "")
         }
 

@@ -105,9 +105,9 @@ class CustomRegionBuilderController: FormViewController {
         }
         else {
             values[regionNameTag] = OBALoc("custom_region_builder_controller.example_data.region_name", value: "My Custom Region", comment: "Example custom region name")
-            values[baseURLTag] = URL(string: "https://api.tampa.onebusaway.org/api/")
+            values[baseURLTag] = URL(string: "https://example.mymetro.au/onebusaway-api-webapp/")
             values[contactEmailTag] = "contact@example.com"
-            values[serviceRectTag] = MKMapRect(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 27.9654987, longitude: -82.5101761), latitudinalMeters: 2000, longitudinalMeters: 2000))
+            values[serviceRectTag] = MKMapRect(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: -37.8324, longitude: 145.2245), latitudinalMeters: 2000, longitudinalMeters: 2000))
         }
 
         form.setValues(values)

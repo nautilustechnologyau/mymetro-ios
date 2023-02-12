@@ -40,11 +40,11 @@ class ContactUsHelper: NSObject {
 
         if target == .appDevelopers {
             mailComposer.setToRecipients([appDevelopersEmail])
-            mailComposer.setSubject(OBALoc("contact_use_helper.feedback_subject.app", value: "OneBusAway Feedback", comment: "Feedback email template subject for the app developers"))
+            mailComposer.setSubject(OBALoc("contact_use_helper.feedback_subject.app", value: "MyMetro Feedback", comment: "Feedback email template subject for the app developers"))
             mailComposer.setMessageBody(appDevelopersMessageTemplate, isHTML: true)
         }
         else {
-            mailComposer.setToRecipients([application.currentRegion?.contactEmail ?? "contact@onebusaway.org"])
+            mailComposer.setToRecipients([application.currentRegion?.contactEmail ?? "mymetro@nautilus-tech.com.au"])
             mailComposer.setSubject(OBALoc("contact_use_helper.feedback_subject.transit_agency", value: "Transit Rider Feedback", comment: "Feedback email template subject for the transit agency"))
             mailComposer.setMessageBody(transitAgencyMessageTemplate, isHTML: true)
         }
@@ -107,7 +107,7 @@ class ContactUsHelper: NSObject {
     }
 
     var appDevelopersEmail: String {
-        Bundle.main.appDevelopersEmailAddress ?? "iphone-app@onebusaway.org"
+        Bundle.main.appDevelopersEmailAddress ?? "mymetro@nautilus-tech.com.au"
     }
 
     // MARK: - Transit Agency
@@ -117,7 +117,7 @@ class ContactUsHelper: NSObject {
     }
 
     var transitAgencyEmail: String {
-        application.currentRegion?.contactEmail ?? "contact@onebusaway.org"
+        application.currentRegion?.contactEmail ?? "mymetro@nautilus-tech.com.au"
     }
 
     // MARK: - Disambiguators

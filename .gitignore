@@ -58,3 +58,6 @@ docs
 !scripts/docs
 Apps/MyMetro/.DS_Store
 Apps/MyMetro/Resources/GoogleService-Info.plist
+OBAKit/Theme/OBAKit.xcassets/.DS_Store
+OBAKit/Theme/OBAKit.xcassets/Miscellaneous/.DS_Store
+OBAKit/Theme/OBAKit.xcassets/TransportGlyphs/.DS_Store

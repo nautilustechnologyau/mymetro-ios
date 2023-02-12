@@ -22,7 +22,7 @@ class LocationPermissionItem: ThemedBulletinPage, LocationServiceDelegate {
         self.locationService = locationService
         self.completion = completion
 
-        super.init(title: OBALoc("location_permission_bulletin.title", value: "Welcome!", comment: "Title of the alert that appears to request your location."))
+        super.init(title: OBALoc("location_permission_bulletin.title", value: "Welcome to MyMetro!", comment: "Title of the alert that appears to request your location."))
 
         self.locationService.addDelegate(self)
 

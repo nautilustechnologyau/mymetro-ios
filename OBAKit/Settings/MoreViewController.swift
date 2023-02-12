@@ -189,7 +189,7 @@ public class MoreViewController: UIViewController,
             comment: "Header for the volunteer section.")
 
         return OBAListViewSection(id: "help_out", title: header, contents: [
-            OBAListRowView.DefaultViewModel(
+            /*OBAListRowView.DefaultViewModel(
                 title: OBALoc(
                     "more_controller.translate_the_app",
                     value: "Help Translate the App",
@@ -197,7 +197,7 @@ public class MoreViewController: UIViewController,
                 onSelectAction: { _ in
                     let url = URL(string: "https://www.transifex.com/open-transit-software-foundation/onebusaway-ios/")!
                     self.application.open(url, options: [:], completionHandler: nil)
-                }),
+                }),*/
 
             OBAListRowView.DefaultViewModel(
                 title: OBALoc(
@@ -205,7 +205,7 @@ public class MoreViewController: UIViewController,
                     value: "Help Fix Bugs & Build New Features",
                     comment: "Request to help develop the app"),
                 onSelectAction: { _ in
-                    let url = URL(string: "https://github.com/oneBusAway/onebusaway-ios")!
+                    let url = URL(string: "https://github.com/nautilustechnologyau/onebusaway-ios")!
                     self.application.open(url, options: [:], completionHandler: nil)
                 }),
         ])
