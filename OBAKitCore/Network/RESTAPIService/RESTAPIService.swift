@@ -12,7 +12,7 @@ public actor RESTAPIService: APIService {
     public let configuration: APIServiceConfiguration
     public nonisolated let dataLoader: URLDataLoader
 
-    let logger = os.Logger(subsystem: "org.onebusaway.iphone", category: "RESTAPIService")
+    let logger = os.Logger(subsystem: "au.mymetro.iphone", category: "RESTAPIService")
 
     nonisolated let urlBuilder: RESTAPIURLBuilder
     nonisolated let decoder: JSONDecoder

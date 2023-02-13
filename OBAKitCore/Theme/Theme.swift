@@ -165,7 +165,7 @@ public class ThemeColors: NSObject {
 
         stopAnnotationFillColor = .systemBackground
         stopAnnotationStrokeColor = .label
-        stopArrowFillColor = .systemRed
+        stopArrowFillColor = .systemPurple
         systemFill = .systemFill
         lightText = .white
         errorColor = .systemRed

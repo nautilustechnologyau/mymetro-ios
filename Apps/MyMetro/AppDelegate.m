@@ -14,7 +14,7 @@
 #import <FirebaseCrashlytics/FirebaseCrashlytics.h>
 #import "OBAFirebaseAnalytics.h"
 #import "App-Swift.h"
-@import GoogleMobileAds;
+
 
 @interface AppDelegate ()<OBAApplicationDelegate>
 @property(nonatomic,strong) OBAApplication *app;
@@ -71,9 +71,8 @@
     [self.app application:application didFinishLaunching:launchOptions];
 
     [self.analyticsClient configureWithUserID:self.app.userUUID];
-    
-    [GADMobileAds.sharedInstance startWithCompletionHandler:nil];
 
+    [self.app initialiseGoogleAd];
     return YES;
 }
 

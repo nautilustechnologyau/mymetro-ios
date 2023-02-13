@@ -14,6 +14,7 @@ import CoreLocation
 import OBAKitCore
 import SafariServices
 import MapKit
+import GoogleMobileAds
 
 // MARK: - Protocols
 
@@ -459,6 +460,11 @@ public class Application: CoreApplication, PushServiceDelegate {
     private func reportAnalyticsUserProperties() {
         let val = UIAccessibility.isVoiceOverRunning ? "YES" : "NO"
         analytics?.setUserProperty?(key: "accessibility", value: val)
+    }
+    
+    // MARK: - Google Ad Initialisation
+    @objc public func initialiseGoogleAd() {
+        GADMobileAds.sharedInstance().start(completionHandler: nil)
     }
 
     // MARK: - Error Visualization
