@@ -7,8 +7,6 @@
 //  LICENSE file in the root directory of this source tree.
 //
 
-import os.log
-
 import UIKit
 import GoogleMobileAds
 import MapKit
@@ -51,10 +49,6 @@ public class MapViewController: UIViewController,
         return hover
     }()
 
-    // MARK: - Logger
-
-    let logger = os.Logger(subsystem: "au.mymetro.iphone", category: "MapViewController")
-
     // MARK: - Data
 
     let application: Application
@@ -65,14 +59,8 @@ public class MapViewController: UIViewController,
 
     // MARK: - Ad
 
-    var bannerView: GADBannerView!
-    var interstitial: GADInterstitialAd?
-    var interstitialDisplayedTime: Int64 = 0
-    var stopShowCount: Int64 = 0
-    var minStopShowCountBeforeShowingAd: Int64 = 7
-    var minTimeElapsedBeforeShowingAd: Int64 = 60
-    var adShowProbablity: Float = 0.4
-    var bannerViewAdded: Bool = false
+    var adController: GoogleAdController!
+
 
     // MARK: - Init
 
@@ -80,6 +68,8 @@ public class MapViewController: UIViewController,
         self.application = application
 
         super.init(nibName: nil, bundle: nil)
+
+        self.adController = GoogleAdController(viewController: self)
 
         title = Strings.map
         tabBarItem.image = Icons.mapTabIcon
@@ -149,9 +139,20 @@ public class MapViewController: UIViewController,
             statusOverlay.trailingAnchor.constraint(equalTo: floatingPanel.surfaceView.trailingAnchor, constant: -ThemeMetrics.padding)
         ])
 
-        if adEnabled() {
-            initBannerView()
-            initInterstitialAd()
+        if adController.isAdEnabled() {
+            adController.initBannerView()
+
+            // adjust toolbar position
+            NSLayoutConstraint.activate([
+                toolbar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ThemeMetrics.controllerMargin),
+                toolbar.topAnchor.constraint(equalTo: adController.bannerView.bottomAnchor, constant: ThemeMetrics.controllerMargin),
+                toolbar.widthAnchor.constraint(equalToConstant: 42.0),
+                locationButton.heightAnchor.constraint(equalTo: locationButton.widthAnchor),
+                weatherButton.heightAnchor.constraint(equalTo: weatherButton.widthAnchor),
+                toggleMapTypeButton.heightAnchor.constraint(equalTo: toggleMapTypeButton.widthAnchor)
+            ])
+
+            adController.initInterstitialAd()
         }
     }
 
@@ -178,10 +179,6 @@ public class MapViewController: UIViewController,
         // the safe area is known. If safe area is not a concern (e.g., your app is
         // locked in portrait mode), the banner can be loaded in viewWillAppear.
 
-        if adEnabled() {
-            // loadBannerAd()
-        }
-
         loadWeather()
         updateVoiceover()
     }
@@ -189,9 +186,9 @@ public class MapViewController: UIViewController,
     public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
 
-        if adEnabled() {
+        if adController.isAdEnabled() {
             coordinator.animate(alongsideTransition: { _ in
-                self.loadBannerAd()
+                self.adController.loadBannerAd()
             })
         }
     }
@@ -381,9 +378,9 @@ public class MapViewController: UIViewController,
     ///
     /// - Parameter stop: The stop to display.
     func show(stop: Stop) {
-        if adEnabled() {
-            stopShowCount += 1
-            loadInterstitialAd()
+        if adController.isAdEnabled() {
+            adController.stopShowCount += 1
+            adController.loadInterstitialAd()
         }
 
         application.viewRouter.navigateTo(stop: stop, from: self)
@@ -511,7 +508,7 @@ public class MapViewController: UIViewController,
     }
 
     func mapPanelControllerDisplaySearch(_ controller: MapFloatingPanelController) {
-        floatingPanel.move(to: .full, animated: true)
+        floatingPanel.move(to: .half, animated: true)
     }
 
     func mapPanelController(_ controller: MapFloatingPanelController, moveTo position: FloatingPanelPosition, animated: Bool) {
@@ -710,9 +707,9 @@ public class MapViewController: UIViewController,
             let stopController = StopViewController(application: self.application, stop: stop)
             stopController.enterPreviewMode()
 
-            if self.adEnabled() {
-                self.stopShowCount += 1
-                self.loadInterstitialAd()
+            if self.adController.isAdEnabled() {
+                self.adController.stopShowCount += 1
+                self.adController.loadInterstitialAd()
             }
 
             return stopController
@@ -737,197 +734,5 @@ public class MapViewController: UIViewController,
         if mapStatusView.frame.contains(point) {
             didTapMapStatus(interaction)
         }
-    }
-
-    // MARK: - Banner Ad Helper Methods
-
-    func adEnabled() -> Bool {
-        return Bundle.main.object(forInfoDictionaryKey: "GADEnabled") as? Bool ?? false
-    }
-
-    func initBannerView() {
-        // In this case, we instantiate the banner with desired ad size.
-        bannerView = GADBannerView(adSize: GADAdSizeBanner)
-        bannerView.delegate = self
-        bannerView.rootViewController = self
-        bannerView.adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADBannerAdUnitID") as? String
-
-        addBannerViewToView(bannerView)
-    }
-
-    func initInterstitialAd() {
-        let request = GADRequest()
-        let adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADInterstitialAdUnitID") as? String ?? ""
-        GADInterstitialAd.load(withAdUnitID: adUnitID,
-                               request: request,
-                               completionHandler: { [self] ad, error in
-                                if let error = error {
-                                    logger.debug("Failed to load interstitial ad with error: \(error.localizedDescription)")
-                                    return
-                                }
-                                interstitial = ad
-                                interstitial?.fullScreenContentDelegate = self
-                              }
-            )
-    }
-
-    func addBannerViewToView(_ bannerView: GADBannerView) {
-        if !bannerViewAdded {
-            view.addSubview(bannerView)
-            bannerView.translatesAutoresizingMaskIntoConstraints = false
-            bannerViewAdded = true
-            loadBannerAd()
-        }
-
-        view.addConstraints(
-          [NSLayoutConstraint(item: bannerView,
-                            attribute: .top,
-                            relatedBy: .equal,
-                            toItem: view.safeAreaLayoutGuide,
-                            attribute: .top,
-                            multiplier: 1,
-                            constant: 0),
-           NSLayoutConstraint(item: bannerView,
-                            attribute: .centerX,
-                            relatedBy: .equal,
-                            toItem: view,
-                            attribute: .centerX,
-                            multiplier: 1,
-                            constant: 0)
-        ])
-
-          // adjust toolbar position
-          NSLayoutConstraint.activate([
-              toolbar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ThemeMetrics.controllerMargin),
-              toolbar.topAnchor.constraint(equalTo: bannerView.bottomAnchor, constant: ThemeMetrics.controllerMargin),
-              toolbar.widthAnchor.constraint(equalToConstant: 42.0),
-              locationButton.heightAnchor.constraint(equalTo: locationButton.widthAnchor),
-              weatherButton.heightAnchor.constraint(equalTo: weatherButton.widthAnchor),
-              toggleMapTypeButton.heightAnchor.constraint(equalTo: toggleMapTypeButton.widthAnchor)
-          ])
-    }
-
-    func loadBannerAd() {
-      // Step 2 - Determine the view width to use for the ad width.
-      let frame = { () -> CGRect in
-        // Here safe area is taken into account, hence the view frame is used
-        // after the view has been laid out.
-        if #available(iOS 11.0, *) {
-          return view.frame.inset(by: view.safeAreaInsets)
-        } else {
-          return view.frame
-        }
-      }()
-      let viewWidth = frame.size.width
-
-      // Step 3 - Get Adaptive GADAdSize and set the ad view.
-      // Here the current interface orientation is used. If the ad is being preloaded
-      // for a future orientation change or different orientation, the function for the
-      // relevant orientation should be used.
-      bannerView.adSize = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(viewWidth)
-
-      // Step 4 - Create an ad request and load the adaptive banner ad.
-      bannerView.load(GADRequest())
-      logger.debug("GADRequest sent")
-    }
-
-    func loadInterstitialAd() {
-        if interstitial == nil {
-            logger.debug("Interstitial ad has not been loaded yet")
-            return
-        }
-
-        // check probablity
-        // let probablity = CGFloat(Float(arc4random()) / Float(UINT32_MAX))
-        let probablity = Float.random(in: 0..<1)
-        if probablity < adShowProbablity {
-            return
-        }
-
-        // will not show ad before minimum stop show count
-        if stopShowCount < minStopShowCountBeforeShowingAd {
-            logger.debug("Not showing ad before minimum stop show count")
-            return
-        }
-
-        if stopShowCount > minStopShowCountBeforeShowingAd && interstitialDisplayedTime == 0 {
-            showInterstitialAd()
-            return
-        }
-
-        if stopShowCount <= minStopShowCountBeforeShowingAd {
-            return
-        }
-
-        // show add when user in on the map for more than minTimeElapsedBeforeShowingAd
-        let currentTimeInSec = Int64(Date().timeIntervalSince1970)
-        let timeDiff = currentTimeInSec - interstitialDisplayedTime
-        if timeDiff > minTimeElapsedBeforeShowingAd {
-            showInterstitialAd()
-            return
-        }
-
-        logger.debug("Not showing ad because it is too early")
-    }
-
-    func showInterstitialAd() {
-        interstitial?.present(fromRootViewController: self)
-        interstitialDisplayedTime = Int64(Date().timeIntervalSince1970)
-        stopShowCount = 0
-    }
-
-    // MARK: - Banner View Delegates (GADBannerViewDelegate)
-
-    public func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
-        // Add banner to view and add constraints as above.
-        bannerView.alpha = 0
-        UIView.animate(withDuration: 1, animations: {
-            bannerView.alpha = 1
-        })
-        logger.debug("bannerViewDidReceiveAd")
-    }
-
-    // Banner ad delegates
-
-    public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
-        logger.debug("bannerView:didFailToReceiveAdWithError: \(error.localizedDescription)")
-    }
-
-    public func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {
-        logger.debug("bannerViewDidRecordImpression")
-    }
-
-    public func bannerViewWillPresentScreen(_ bannerView: GADBannerView) {
-        logger.debug("bannerViewWillPresentScreen")
-    }
-
-    public func bannerViewWillDismissScreen(_ bannerView: GADBannerView) {
-        logger.debug("bannerViewWillDIsmissScreen")
-    }
-
-    public func bannerViewDidDismissScreen(_ bannerView: GADBannerView) {
-        logger.debug("bannerViewDidDismissScreen")
-    }
-
-    // interstial ad delegates
-
-    /// Tells the delegate that the ad failed to present full screen content.
-    public func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
-        interstitial = nil
-        logger.debug("Ad did fail to present full screen content.")
-    }
-
-      /// Tells the delegate that the ad will present full screen content.
-    public func adWillPresentFullScreenContent(_ ad: GADFullScreenPresentingAd) {
-        logger.debug("Ad will present full screen content.")
-    }
-
-      /// Tells the delegate that the ad dismissed full screen content.
-    public func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
-        // load ad again
-        interstitial = nil
-        initInterstitialAd()
-
-        logger.debug("Ad did dismiss full screen content.")
     }
 }

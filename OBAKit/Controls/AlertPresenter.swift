@@ -32,8 +32,10 @@ class AlertPresenter: NSObject {
     /// - Parameter message: Optional alert message.
     /// - Parameter presentingController: The presenting view controller.
     public class func showDismissableAlert(title: String?, message: String?, presentingController: UIViewController) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Strings.dismiss, style: .default, handler: nil))
-        presentingController.present(alert, animated: true, completion: nil)
+        DispatchQueue.main.async(execute: {
+            let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Strings.dismiss, style: .default, handler: nil))
+            presentingController.present(alert, animated: true, completion: nil)
+        })
     }
 }
