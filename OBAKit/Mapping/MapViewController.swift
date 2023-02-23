@@ -140,7 +140,7 @@ public class MapViewController: UIViewController,
         ])
 
         if adController.isAdEnabled() {
-            adController.initBannerView()
+            adController.initBannerView(belowView: self.floatingPanel.view)
 
             // adjust toolbar position
             NSLayoutConstraint.activate([
@@ -465,7 +465,8 @@ public class MapViewController: UIViewController,
         // See #431.
         mapRegionManager.mapView.accessibilityElementsHidden = !floatingPanelPositionIsCollapsed
 
-        if mapPanelController.inSearchMode && floatingPanelPositionIsCollapsed {
+        let shouldExitSearch = vc.position == .tip || vc.position == .hidden || vc.position == .half
+        if mapPanelController.inSearchMode && shouldExitSearch {
             mapPanelController.exitSearchMode()
         }
     }
@@ -508,7 +509,7 @@ public class MapViewController: UIViewController,
     }
 
     func mapPanelControllerDisplaySearch(_ controller: MapFloatingPanelController) {
-        floatingPanel.move(to: .half, animated: true)
+        floatingPanel.move(to: .full, animated: true)
     }
 
     func mapPanelController(_ controller: MapFloatingPanelController, moveTo position: FloatingPanelPosition, animated: Bool) {

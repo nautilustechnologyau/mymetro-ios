@@ -96,7 +96,7 @@ class TripViewController: UIViewController,
         }
         
         if !isBeingPreviewed && adController.isAdEnabled() {
-            adController.initBannerView()
+            adController.initBannerView(belowView: self.floatingPanel.view)
         }
     }
     
@@ -171,7 +171,7 @@ class TripViewController: UIViewController,
         tripDetailsController.listView.applyData()
         
         if adController.isAdEnabled() {
-            adController.initBannerView()
+            adController.initBannerView(belowView: self.floatingPanel.view)
         }
     }
     

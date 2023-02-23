@@ -41,14 +41,14 @@ class GoogleAdController: NSObject,
         return Bundle.main.object(forInfoDictionaryKey: "GADEnabled") as? Bool ?? false
     }
 
-    public func initBannerView() {
+    public func initBannerView(belowView: UIView? = nil) {
         // In this case, we instantiate the banner with desired ad size.
         bannerView = GADBannerView(adSize: GADAdSizeBanner)
         bannerView.delegate = self
         bannerView.rootViewController = viewController
         bannerView.adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADBannerAdUnitID") as? String
 
-        addBannerViewToView(bannerView)
+        addBannerViewToView(bannerView, belowView: belowView)
     }
 
     public func initInterstitialAd() {
@@ -67,9 +67,13 @@ class GoogleAdController: NSObject,
         )
     }
 
-    public func addBannerViewToView(_ bannerView: GADBannerView) {
+    public func addBannerViewToView(_ bannerView: GADBannerView, belowView: UIView? = nil) {
         if !bannerViewAdded {
-            viewController.view.addSubview(bannerView)
+            if let belowView = belowView {
+                viewController.view.insertSubview(bannerView, belowSubview: belowView)
+            } else {
+                viewController.view.addSubview(bannerView)
+            }
             bannerView.translatesAutoresizingMaskIntoConstraints = false
             bannerViewAdded = true
             loadBannerAd()
@@ -176,6 +180,8 @@ class GoogleAdController: NSObject,
 
     public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
         logger.debug("bannerView:didFailToReceiveAdWithError: \(error.localizedDescription)")
+        bannerView.removeFromSuperview()
+        bannerViewAdded = false
     }
 
     public func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {

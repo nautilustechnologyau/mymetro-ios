@@ -154,6 +154,7 @@ class MapFloatingPanelController: VisualEffectViewController,
     /// Cancels searching and exits search mode
     public func exitSearchMode() {
         searchBar.text = nil
+        searchBar.endEditing(true)
         searchBar.resignFirstResponder()
         searchBar.showsCancelButton = false
         inSearchMode = false
