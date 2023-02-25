@@ -81,7 +81,7 @@ class MapFloatingPanelController: VisualEffectViewController,
             else {
                 mapPanelDelegate?.mapPanelController(self, moveTo: .tip, animated: true)
             }
-            listView.applyData()
+            // listView.applyData()
         }
     }
 

@@ -284,49 +284,63 @@ public class MapRegionManager: NSObject,
     // MARK: - Delegates/Search
 
     private func notifyDelegatesNoSearchResults(response: SearchResponse) {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, noSearchResults: response)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManager?(self, noSearchResults: response)
+            }
         }
     }
 
     private func notifyDelegatesDisambiguationRequired(response: SearchResponse) {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, disambiguateSearch: response)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManager?(self, disambiguateSearch: response)
+            }
         }
     }
 
     private func notifyDelegatesShowSearchResult(response: SearchResponse) {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, showSearchResult: response)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManager?(self, showSearchResult: response)
+            }
         }
     }
 
     private func notifyDelegatesStopsChanged() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, stopsUpdated: stops)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManager?(self, stopsUpdated: stops)
+            }
         }
     }
 
     /// Notifies delegates that data loading has started.
     /// In UI terms, this should mean that a loading indicator is shown in the app.
     private func notifyDelegatesDataLoadingStarted() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManagerDataLoadingStarted?(self)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManagerDataLoadingStarted?(self)
+            }
         }
     }
 
     /// Notifies delegates that data loading has finished.
     /// In UI terms, this should mean that a loading indicator is hidden in the app.
     private func notifyDelegatesDataLoadingFinished() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManagerDataLoadingFinished?(self)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManagerDataLoadingFinished?(self)
+            }
         }
     }
 
     /// Instructs delegates to close/dismiss their search UIs.
     private func notifyDelegatesDismissSearch() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManagerDismissSearch?(self)
+        DispatchQueue.main.async { [self] () -> Void in
+            for delegate in delegates.allObjects {
+                delegate.mapRegionManagerDismissSearch?(self)
+            }
         }
     }
 
