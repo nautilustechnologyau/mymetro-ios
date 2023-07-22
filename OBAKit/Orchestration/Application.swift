@@ -15,6 +15,7 @@ import OBAKitCore
 import SafariServices
 import MapKit
 import GoogleMobileAds
+import SwiftUI
 
 // MARK: - Protocols
 
@@ -69,6 +70,7 @@ public class Application: CoreApplication, PushServiceDelegate {
     // MARK: - Public Properties
 
     /// Responsible for figuring out how to navigate between view controllers.
+    @MainActor
     lazy var viewRouter = ViewRouter(application: self)
 
     /// Responsible for creating stop 'badges' for the map.
@@ -89,34 +91,32 @@ public class Application: CoreApplication, PushServiceDelegate {
                 let topVC = self.topViewController
             else { return }
 
-            self.viewRouter.navigateTo(stop: stop, from: topVC)
+            Task { @MainActor in
+                self.viewRouter.navigateTo(stop: stop, from: topVC)
+            }
         }
 
         router?.showArrivalDepartureDeepLink = { [weak self] deepLink in
-            guard
-                let self = self,
-                let apiService = self.restAPIService
-            else { return }
+            guard let self, let apiService = self.apiService else {
+                return
+            }
 
-            ProgressHUD.show()
+            Task(priority: .userInitiated) {
+                await ProgressHUD.show()
 
-            let op = apiService.getTripArrivalDepartureAtStop(stopID: deepLink.stopID, tripID: deepLink.tripID, serviceDate: deepLink.serviceDate, vehicleID: deepLink.vehicleID, stopSequence: deepLink.stopSequence)
-            op.complete { [weak self] result in
-                ProgressHUD.dismiss()
+                do {
+                    let arrDep = try await apiService.getTripArrivalDepartureAtStop(stopID: deepLink.stopID, tripID: deepLink.tripID, serviceDate: deepLink.serviceDate, vehicleID: deepLink.vehicleID, stopSequence: deepLink.stopSequence).entry
 
-                guard
-                    let self = self,
-                    let topVC = self.topViewController
-                else { return }
-
-                switch result {
-                case .failure(let error):
-                    Task { @MainActor in
-                        self.displayError(error)
+                    await MainActor.run {
+                        if let topViewController = self.topViewController {
+                            self.viewRouter.navigateTo(arrivalDeparture: arrDep, from: topViewController)
+                        }
                     }
-                case .success(let response):
-                    self.viewRouter.navigateTo(arrivalDeparture: response.entry, from: topVC)
+                } catch {
+                    await self.displayError(error)
                 }
+
+                await ProgressHUD.dismiss()
             }
         }
 
@@ -140,35 +140,31 @@ public class Application: CoreApplication, PushServiceDelegate {
         configureAppearanceProxies()
     }
 
-    // MARK: - Onboarding
-
-    private lazy var onboarder = Onboarder(locationService: locationService, regionsService: regionsService, dataMigrator: dataMigrator)
-
-    /// Performs the full onboarding process: location permissions, region selection, and data migration.
-    public func performOnboarding() {
-        guard
-            onboarder.onboardingRequired,
-            let uiApp = self.delegate?.uiApplication
-        else { return }
-
-        onboarder.show(in: uiApp)
-    }
-
     // MARK: - Onboarding/Data Migration
 
-    /// When true, this means that the application's user defaults contain data that can be migrated into a modern format.
-    public var hasDataToMigrate: Bool { dataMigrationBulletin.hasDataToMigrate }
+    /// Returns whether we should prompt the user to perform a data migration.
+    /// If the user has performed the migration before, this returns `false`.
+    public var shouldPerformMigration: Bool {
+        DataMigrator.standard.shouldPerformMigration
+    }
 
-    lazy var dataMigrationBulletin = DataMigrationBulletinManager(dataMigrator: dataMigrator)
+    /// When true, this means that the application's user defaults contain data that can be migrated into a modern format.
+    public var hasDataToMigrate: Bool {
+        DataMigrator.standard.hasDataToMigrate
+    }
 
     /// If data exists to migrate, this method will prompt the user about whether they wish to migrate data from an old format to the new format.
+    @MainActor
     public func performDataMigration() {
-        guard
-            hasDataToMigrate,
-            let uiApp = self.delegate?.uiApplication
-        else { return }
+        let migrationView = UIHostingController(
+            rootView:
+                DataMigrationView()
+                .environment(\.coreApplication, self)
+        )
 
-        dataMigrationBulletin.show(in: uiApp)
+        if let topViewController {
+            self.viewRouter.present(migrationView, from: topViewController, isModal: true)
+        }
     }
 
     // MARK: - UI
@@ -254,23 +250,20 @@ public class Application: CoreApplication, PushServiceDelegate {
     }
 
     public func pushService(_ pushService: PushService, received pushBody: AlarmPushBody) {
-        guard let apiService = restAPIService else { return }
+        guard let apiService = apiService else { return }
 
-        let op = apiService.getTripArrivalDepartureAtStop(stopID: pushBody.stopID, tripID: pushBody.tripID, serviceDate: pushBody.serviceDate, vehicleID: pushBody.vehicleID, stopSequence: pushBody.stopSequence)
-        op.complete { [weak self] result in
-            guard
-                let self = self,
-                let topController = self.topViewController
-            else { return }
+        Task(priority: .userInitiated) { [weak self] in
+            do {
+                let arrivalDeparture = try await apiService.getTripArrivalDepartureAtStop(stopID: pushBody.stopID, tripID: pushBody.tripID, serviceDate: pushBody.serviceDate, vehicleID: pushBody.vehicleID, stopSequence: pushBody.stopSequence).entry
 
-            switch result {
-            case .failure(let error):
-                Task { @MainActor in
-                    self.displayError(error)
+                if let self, let topViewController = self.topViewController {
+                    await MainActor.run {
+                        let tripController = TripViewController(application: self, arrivalDeparture: arrivalDeparture)
+                        self.viewRouter.navigate(to: tripController, from: topViewController)
+                    }
                 }
-            case .success(let response):
-                let tripController = TripViewController(application: self, arrivalDeparture: response.entry)
-                self.viewRouter.navigate(to: tripController, from: topController)
+            } catch {
+                await self?.displayError(error)
             }
         }
     }
@@ -291,20 +284,22 @@ public class Application: CoreApplication, PushServiceDelegate {
 
         alertBulletin = AgencyAlertBulletin(agencyAlert: alert, locale: locale)
         alertBulletin?.showMoreInformationHandler = { url in
-            if let topViewController = self.topViewController {
-                let safari = SFSafariViewController(url: url)
-                self.viewRouter.present(safari, from: topViewController, isModal: true)
-            }
-            else {
-                self.open(url, options: [:], completionHandler: nil)
+            Task { @MainActor in
+                if let topViewController = self.topViewController {
+                    let safari = SFSafariViewController(url: url)
+                    self.viewRouter.present(safari, from: topViewController, isModal: true)
+                }
+                else {
+                    self.open(url, options: [:], completionHandler: nil)
+                }
             }
         }
         alertBulletin?.show(in: app)
     }
 
     func agencyAlertsStore(_ store: AgencyAlertsStore, displayError error: Error) {
-        Task { @MainActor in
-            self.displayError(error)
+        Task {
+            await self.displayError(error)
         }
     }
 
@@ -320,8 +315,6 @@ public class Application: CoreApplication, PushServiceDelegate {
 
         configurePushNotifications(launchOptions: options)
         reloadRootUserInterface()
-
-        performOnboarding()
 
         reportAnalyticsUserProperties()
     }
@@ -386,6 +379,7 @@ public class Application: CoreApplication, PushServiceDelegate {
         return appLinksRouter.route(userActivity: userActivity)
     }
 
+    @MainActor
     @objc public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         guard let scheme = Bundle.main.extensionURLScheme else {
             return false
@@ -425,13 +419,6 @@ public class Application: CoreApplication, PushServiceDelegate {
     }
 
     // MARK: - Regions Management
-
-    public func regionsServiceUnableToSelectRegion(_ service: RegionsService) {
-        guard let app = delegate?.uiApplication else { return }
-
-        onboarder.show(in: app)
-    }
-
     public func regionsService(_ service: RegionsService, changedAutomaticRegionSelection value: Bool) {
         let label = value ? AnalyticsLabels.setRegionAutomatically : AnalyticsLabels.setRegionManually
         analytics?.reportEvent?(.userAction, label: label, value: nil)
@@ -448,8 +435,8 @@ public class Application: CoreApplication, PushServiceDelegate {
     }
 
     public func regionsService(_ service: RegionsService, displayError error: Error) {
-        Task { @MainActor in
-            displayError(error)
+        Task {
+            await displayError(error)
         }
     }
 
@@ -476,8 +463,8 @@ public class Application: CoreApplication, PushServiceDelegate {
     ///
     /// - Parameter error: The error to display.
     @MainActor
-    public override func displayError(_ error: Error) {
-        super.displayError(error)
+    public override func displayError(_ error: Error) async {
+        await super.displayError(error)
         guard let uiApp = delegate?.uiApplication else { return }
         let bulletin = ErrorBulletin(application: self, message: error.localizedDescription)
         bulletin.show(in: uiApp)
