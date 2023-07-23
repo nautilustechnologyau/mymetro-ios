@@ -28,6 +28,7 @@ class MapViewController: UIViewController,
     UIContextMenuInteractionDelegate,
     UILargeContentViewerInteractionDelegate {
 
+
     // MARK: - Hoverbar
 
     lazy var toolbar: HoverBar = {
@@ -467,7 +468,7 @@ class MapViewController: UIViewController,
         // See #431.
         mapRegionManager.mapView.accessibilityElementsHidden = !floatingPanelPositionIsCollapsed
 
-        let shouldExitSearch = vc.position == .tip || vc.position == .hidden || vc.position == .half
+        let shouldExitSearch = vc.state == .tip || vc.state == .hidden || vc.state == .half
         if mapPanelController.inSearchMode && shouldExitSearch {
             mapPanelController.exitSearchMode()
         }
