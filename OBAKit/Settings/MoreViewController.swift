@@ -7,6 +7,7 @@
 //  LICENSE file in the root directory of this source tree.
 //
 
+import SwiftUI
 import MessageUI
 import OBAKitCore
 import SafariServices
@@ -119,10 +120,16 @@ public class MoreViewController: UIViewController,
     var myLocationSection: OBAListViewSection {
         var contents: [AnyOBAListViewItem] = []
 
-        contents.append(OBAListRowView.ValueViewModel(title: OBALoc("more_controller.my_location.region_row_title", value: "Region", comment: "Title of the row that lets the user choose their current region."), subtitle: application.currentRegion?.name, onSelectAction: { _ in
-            let regionPicker = RegionPickerViewController(application: self.application)
-            let nav = self.application.viewRouter.buildNavigation(controller: regionPicker)
-            self.application.viewRouter.present(nav, from: self)
+        contents.append(OBAListRowView.ValueViewModel(title: OBALoc("more_controller.my_location.region_row_title", value: "Region", comment: "Title of the row that lets the user choose their current region."), subtitle: application.currentRegion?.name, onSelectAction: { [unowned self] _ in
+
+            let regionPicker = UIHostingController(
+                rootView: NavigationView {
+                    RegionPickerView(regionProvider: RegionPickerCoordinator(regionsService: self.application.regionsService))
+                        .interactiveDismissDisabled()
+                }.navigationViewStyle(.stack)
+            )
+
+            self.application.viewRouter.present(regionPicker, from: self)
         }).typeErased)
 
         if let currentRegion = application.currentRegion, currentRegion.supportsMobileFarePayment {
@@ -168,15 +175,6 @@ public class MoreViewController: UIViewController,
                     guard let url = Bundle.main.privacyPolicyURL else { return }
                     let safari = SFSafariViewController(url: url)
                     self.application.viewRouter.present(safari, from: self)
-                }),
-
-            OBAListRowView.DefaultViewModel(
-                title: OBALoc(
-                    "more_controller.weather_credits_row",
-                    value: "Weather forecasts powered by Dark Sky",
-                    comment: "Weather forecast attribution"),
-                onSelectAction: { _ in
-                    self.application.open(URL(string: "https://darksky.net/poweredby/")!, options: [:], completionHandler: nil)
                 })
         ])
     }
@@ -266,7 +264,10 @@ public class MoreViewController: UIViewController,
         controller.dismiss(animated: true, completion: nil)
 
         if let error = error {
-            AlertPresenter.show(error: error, presentingController: self)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await AlertPresenter.show(error: error, presentingController: self)
+            }
         }
     }
 
@@ -307,7 +308,10 @@ public class MoreViewController: UIViewController,
     }
 
     public func farePayments(_ farePayments: FarePayments, present error: Error) {
-        AlertPresenter.show(error: error, presentingController: self)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await AlertPresenter.show(error: error, presentingController: self)
+        }
     }
 
     // MARK: - Regions Service Delegate

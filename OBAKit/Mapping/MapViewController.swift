@@ -16,7 +16,7 @@ import OBAKitCore
 /// Displays a map, a set of stops rendered as annotation views, and the user's location if authorized.
 ///
 /// `MapViewController` is the average user's primary means of interacting with OneBusAway data.
-public class MapViewController: UIViewController,
+class MapViewController: UIViewController,
     FloatingPanelControllerDelegate,
     LocationServiceDelegate,
     MapRegionDelegate,
@@ -27,6 +27,7 @@ public class MapViewController: UIViewController,
     GADFullScreenContentDelegate,
     UIContextMenuInteractionDelegate,
     UILargeContentViewerInteractionDelegate {
+
 
     // MARK: - Hoverbar
 
@@ -86,7 +87,6 @@ public class MapViewController: UIViewController,
     required init?(coder aDecoder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     deinit {
-        weatherOperation?.cancel()
         application.mapRegionManager.removeDelegate(self)
         application.locationService.removeDelegate(self)
     }
@@ -222,7 +222,7 @@ public class MapViewController: UIViewController,
 
         // It is possible to activate the center map button via Voiceover. When the user
         // centers the map on their location, partially collapse the sheet to enable mapview interaction.
-        if floatingPanel.position == .full {
+        if floatingPanel.state == .full {
             floatingPanel.move(to: .half, animated: true)
         }
     }
@@ -295,8 +295,6 @@ public class MapViewController: UIViewController,
         present(alert, animated: true, completion: nil)
     }
 
-    private var weatherOperation: DecodableOperation<WeatherForecast>?
-
     private var forecast: WeatherForecast? {
         didSet {
             if let forecast = forecast {
@@ -313,16 +311,16 @@ public class MapViewController: UIViewController,
     private func loadWeather() {
         guard let apiService = application.obacoService else { return }
 
-        let op = apiService.getWeather()
-        op.complete { [weak self] result in
-            guard let self = self else { return }
-
-            self.forecast = try? result.get()
-            if case let .failure(error) = result {
+        Task {
+            do {
+                let forecast = try await apiService.getWeather()
+                await MainActor.run {
+                    self.forecast = forecast
+                }
+            } catch {
                 Logger.error(error.localizedDescription)
             }
         }
-        weatherOperation = op
     }
 
     // MARK: - Map Type
@@ -394,15 +392,10 @@ public class MapViewController: UIViewController,
     /// Sets the margins for the map view to keep the scale and legal info within the viewable area.
     /// Call this when you modify top level UI.
     func layoutMapMargins() {
-        let panelViewHeight = floatingPanel.layout.insetFor(position: .tip) ?? 0
-
-        let top = mapStatusView.frame.height - view.safeAreaInsets.top
-        let bottom = panelViewHeight + ThemeMetrics.compactPadding
-
         if traitCollection.horizontalSizeClass == .regular {
-            self.mapRegionManager.mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: top, leading: MapPanelLandscapeLayout.WidthSize + ThemeMetrics.padding, bottom: 0, trailing: 0)
+            self.mapRegionManager.mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: MapPanelLandscapeLayout.WidthSize + ThemeMetrics.padding, bottom: 0, trailing: 0)
         } else {
-            self.mapRegionManager.mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: top, leading: 0, bottom: bottom, trailing: 0)
+            self.mapRegionManager.mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: MapPanelLayout.EstimatedDrawerTipStateHeight, trailing: 0)
         }
     }
 
@@ -410,21 +403,29 @@ public class MapViewController: UIViewController,
 
     private var semiModalPanel: FloatingPanelController?
 
+    private lazy var floatingPanelSurfaceAppearance: SurfaceAppearance = {
+        let appearance = SurfaceAppearance()
+        appearance.cornerRadius = ThemeMetrics.cornerRadius
+        appearance.backgroundColor = .clear
+        return appearance
+    }()
+
     private func showSemiModalPanel(childController: UIViewController) {
         semiModalPanel?.removePanelFromParent(animated: false)
 
         let panel = FloatingPanelController()
-        panel.surfaceView.cornerRadius = ThemeMetrics.cornerRadius
-        panel.surfaceView.backgroundColor = .clear
+        panel.surfaceView.appearance = floatingPanelSurfaceAppearance
 
         // Set a content view controller.
         panel.set(contentViewController: childController)
 
-        if childController is Scrollable {
-            panel.track(scrollView: (childController as! Scrollable).scrollView) // swiftlint:disable:this force_cast
+        panel.contentInsetAdjustmentBehavior = .never
+
+        if let scrollableChildController = childController as? Scrollable {
+            panel.track(scrollView: scrollableChildController.scrollView)
         }
 
-        panel.addPanel(toParent: self, belowView: nil, animated: true)
+        panel.addPanel(toParent: self)
 
         semiModalPanel = panel
     }
@@ -433,39 +434,41 @@ public class MapViewController: UIViewController,
     private lazy var floatingPanel: OBAFloatingPanelController = {
         let panel = OBAFloatingPanelController(application, delegate: self)
         panel.isRemovalInteractionEnabled = false
-        panel.surfaceView.cornerRadius = ThemeMetrics.cornerRadius
-        panel.surfaceView.backgroundColor = .clear
+        panel.surfaceView.appearance = floatingPanelSurfaceAppearance
 
         // Set a content view controller.
         panel.set(contentViewController: mapPanelController)
 
-        // Track a scroll view (or the siblings) in the content view controller.
-        panel.track(scrollView: mapPanelController.listView)
+        panel.contentMode = .fitToBounds
+
+        // Content Inset Adjustment + OBAListView don't play well together and causes undefined behavior,
+        // as described in "OBAListView "sticky" row behavior while scrolling in panel" (#321)
+        panel.contentInsetAdjustmentBehavior = .never
 
         return panel
     }()
 
-    public func floatingPanel(_ vc: FloatingPanelController, layoutFor newCollection: UITraitCollection) -> FloatingPanelLayout? {
+    public func floatingPanel(_ vc: FloatingPanelController, layoutFor newCollection: UITraitCollection) -> FloatingPanelLayout {
         switch newCollection.horizontalSizeClass {
         case .regular:
-            return MapPanelLandscapeLayout(initialPosition: .half)
+            return MapPanelLandscapeLayout(initialState: .half)
         default:
-            return MapPanelLayout(initialPosition: .tip)
+            return MapPanelLayout(initialState: .tip)
         }
     }
 
     public func floatingPanelDidChangePosition(_ vc: FloatingPanel.FloatingPanelController) {
         // Don't allow the status overlay to be shown when the
         // Floating Panel is fully open because it looks weird.
-        let floatingPanelPositionIsCollapsed = vc.position == .tip || vc.position == .hidden
-        statusOverlay.isHidden = vc.position == .full
-        mapPanelController.listView.accessibilityElementsHidden = floatingPanelPositionIsCollapsed
+        let floatingPanelPositionIsCollapsed = vc.state == .tip || vc.state == .hidden
+        statusOverlay.isHidden = vc.state == .full
+        mapPanelController.currentScrollView?.accessibilityElementsHidden = floatingPanelPositionIsCollapsed
 
         // Disables voiceover interacting with map elements (such as streets and POIs).
         // See #431.
         mapRegionManager.mapView.accessibilityElementsHidden = !floatingPanelPositionIsCollapsed
 
-        let shouldExitSearch = vc.position == .tip || vc.position == .hidden || vc.position == .half
+        let shouldExitSearch = vc.state == .tip || vc.state == .hidden || vc.state == .half
         if mapPanelController.inSearchMode && shouldExitSearch {
             mapPanelController.exitSearchMode()
         }
@@ -489,7 +492,7 @@ public class MapViewController: UIViewController,
     public func dismissModalController(_ controller: UIViewController) {
         if controller == semiModalPanel?.contentViewController {
             if statusOverlay.isHidden {
-                statusOverlay.isHidden = floatingPanel.position != .full
+                statusOverlay.isHidden = floatingPanel.state != .full
             }
 
             mapRegionManager.cancelSearch()
@@ -512,8 +515,18 @@ public class MapViewController: UIViewController,
         floatingPanel.move(to: .full, animated: true)
     }
 
-    func mapPanelController(_ controller: MapFloatingPanelController, moveTo position: FloatingPanelPosition, animated: Bool) {
-        floatingPanel.move(to: position, animated: animated)
+    func mapPanelControllerDidChangeChildViewController(_ controller: MapFloatingPanelController) {
+        // If there is a new scroll view, tell floating panel to track the new scroll view.
+        // Else, untrack its currently tracking scroll view.
+        if let newScrollView = controller.currentScrollView {
+            floatingPanel.track(scrollView: newScrollView)
+        } else if let currentTrackingScrollView = floatingPanel.trackingScrollView {
+            floatingPanel.untrack(scrollView: currentTrackingScrollView)
+        }
+    }
+
+    func mapPanelController(_ controller: MapFloatingPanelController, moveTo state: FloatingPanelState, animated: Bool) {
+        floatingPanel.move(to: state, animated: animated)
     }
 
     // MARK: - MapRegionDelegate
@@ -563,40 +576,49 @@ public class MapViewController: UIViewController,
     }
 
     public func mapRegionManager(_ manager: MapRegionManager, noSearchResults response: SearchResponse) {
-        AlertPresenter.show(errorMessage: OBALoc("map_controller.no_search_results_found", value: "No search results were found.", comment: "A generic message shown when the user's search query produces no search results."), presentingController: self)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await AlertPresenter.show(errorMessage: OBALoc("map_controller.no_search_results_found", value: "No search results were found.", comment: "A generic message shown when the user's search query produces no search results."), presentingController: self)
+        }
     }
 
     public func mapRegionManager(_ manager: MapRegionManager, disambiguateSearch response: SearchResponse) {
-        let searchResults = SearchResultsController(searchResponse: response, application: application, delegate: self)
-        let nav = UINavigationController(rootViewController: searchResults)
-        application.viewRouter.present(nav, from: self, isModal: true)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let searchResults = SearchResultsController(searchResponse: response, application: application, delegate: self)
+            let nav = UINavigationController(rootViewController: searchResults)
+            application.viewRouter.present(nav, from: self, isModal: true)
+        }
     }
 
+    @MainActor
     public func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse) {
-        guard let result = response.results.first else { return }
+        Task { @MainActor [weak self] in
+            guard let self, let result = response.results.first else { return }
 
-        statusOverlay.isHidden = true
+            statusOverlay.isHidden = true
 
-        switch result {
-        case let result as MKMapItem:
-            let mapItemController = MapItemViewController(application: application, mapItem: result, delegate: self)
-            showSemiModalPanel(childController: mapItemController)
-        case let result as StopsForRoute:
-            let routeStopController = RouteStopsViewController(application: application, stopsForRoute: result, delegate: self)
-            showSemiModalPanel(childController: routeStopController)
-        case let result as Stop:
-            show(stop: result)
-        case let result as VehicleStatus:
-            if let convertible = TripConvertible(vehicleStatus: result) {
-                let tripController = TripViewController(application: application, tripConvertible: convertible)
-                application.viewRouter.navigate(to: tripController, from: self)
+            switch result {
+            case let result as MKMapItem:
+                let mapItemController = MapItemViewController(application: application, mapItem: result, delegate: self)
+                showSemiModalPanel(childController: mapItemController)
+            case let result as StopsForRoute:
+                let routeStopController = RouteStopsViewController(application: application, stopsForRoute: result, delegate: self)
+                showSemiModalPanel(childController: routeStopController)
+            case let result as Stop:
+                show(stop: result)
+            case let result as VehicleStatus:
+                if let convertible = TripConvertible(vehicleStatus: result) {
+                    let tripController = TripViewController(application: application, tripConvertible: convertible)
+                    application.viewRouter.navigate(to: tripController, from: self)
+                }
+                else {
+                    let msg = OBALoc("map_controller.vehicle_not_on_trip_error", value: "The vehicle you chose doesn't appear to be on a trip right now, which means we don't know how to show it to you.", comment: "This message appears when a searched-for vehicle doesn't have an assigned trip.")
+                    await AlertPresenter.show(errorMessage: msg, presentingController: self)
+                }
+            default:
+                fatalError()
             }
-            else {
-                let msg = OBALoc("map_controller.vehicle_not_on_trip_error", value: "The vehicle you chose doesn't appear to be on a trip right now, which means we don't know how to show it to you.", comment: "This message appears when a searched-for vehicle doesn't have an assigned trip.")
-                AlertPresenter.show(errorMessage: msg, presentingController: self)
-            }
-        default:
-            fatalError()
         }
     }
 

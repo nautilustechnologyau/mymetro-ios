@@ -25,7 +25,7 @@ class TripViewController: UIViewController,
 
     public let application: Application
     
-    private let tripConvertible: TripConvertible
+    private(set) var tripConvertible: TripConvertible
     
     private lazy var dataLoadFeedbackGenerator = DataLoadFeedbackGenerator(application: application)
     
@@ -231,7 +231,7 @@ class TripViewController: UIViewController,
     private lazy var floatingPanel: OBAFloatingPanelController = {
         let panel = OBAFloatingPanelController(application, delegate: self)
         panel.isRemovalInteractionEnabled = false
-        panel.surfaceView.cornerRadius = ThemeMetrics.cornerRadius
+        panel.surfaceView.appearance.cornerRadius = ThemeMetrics.cornerRadius
         panel.contentMode = .fitToBounds
         
         // Set a content view controller.
@@ -240,41 +240,38 @@ class TripViewController: UIViewController,
         return panel
     }()
     
-    public func floatingPanel(_ vc: FloatingPanelController, layoutFor newCollection: UITraitCollection) -> FloatingPanelLayout? {
+    public func floatingPanel(_ vc: FloatingPanelController, layoutFor newCollection: UITraitCollection) -> FloatingPanelLayout {
         let layout: FloatingPanelLayout
         switch newCollection.horizontalSizeClass {
         case .regular:
-            layout = MapPanelLandscapeLayout(initialPosition: .tip)
+            layout = MapPanelLandscapeLayout(initialState: .tip)
         default:
-            layout = MapPanelLayout(initialPosition: .tip)
+            layout = MapPanelLayout(initialState: .tip)
         }
         
         return layout
-    }
-    
-    func floatingPanelShouldBeginDragging(_ vc: FloatingPanelController) -> Bool {
-        // If data is loading, don't allow panel change.
-        // If operation is nil, data has probably never loaded.
-        return !(self.tripDetailsOperation?.isExecuting ?? true)
     }
     
     func floatingPanelDidMove(_ vc: FloatingPanelController) {
         showTripDetails = true
     }
     
-    func floatingPanelDidChangePosition(_ vc: FloatingPanel.FloatingPanelController) {
-        showTripDetails = vc.position != .tip
-        tripDetailsController.configureView(for: vc.position)
+    func floatingPanelDidChangeState(_ fpc: FloatingPanelController) {
+        showTripDetails = fpc.state != .tip
+        tripDetailsController.configureView(for: fpc.state)
         
-        guard !isBeingPreviewed else { return }
-        
-        // We don't need to set the map view's margins if the drawer will take up the whole screen.
-        if vc.position != .full {
+        if fpc.state != .full {
             if traitCollection.horizontalSizeClass == .regular {
                 mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: MapPanelLandscapeLayout.WidthSize + ThemeMetrics.padding, bottom: 0, trailing: 0)
             } else {
-                let drawerHeight = vc.layout.insetFor(position: vc.position) ?? 0
-                mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: drawerHeight, trailing: 0)
+                let bottom: CGFloat
+                if fpc.state == .half {
+                    bottom = self.view.safeAreaLayoutGuide.layoutFrame.height / 2
+                } else {
+                    bottom = MapPanelLayout.EstimatedDrawerTipStateHeight
+                }
+
+                mapView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: bottom, trailing: 0)
             }
         }
     }
@@ -293,9 +290,6 @@ class TripViewController: UIViewController,
     }
     
     // MARK: - Trip Details Data
-    
-    private var tripDetailsOperation: DecodableOperation<RESTAPIResponse<TripDetails>>?
-    
     private var currentTripStatus: TripStatus? {
         didSet {
             guard let currentTripStatus = currentTripStatus else {
@@ -315,92 +309,84 @@ class TripViewController: UIViewController,
         }
     }
     
-    private func loadTripDetails(isProgrammatic: Bool) {
-        guard let apiService = application.restAPIService else {
+    private func loadTripConvertible(isProgrammatic: Bool) async throws {
+        guard let apiService = application.apiService else {
             return
         }
         
-        tripDetailsOperation?.cancel()
+        guard let arrivalDeparture = tripConvertible.arrivalDeparture else {
+            return
+        }
         
-        self.navigationItem.rightBarButtonItem = self.activityIndicatorButton
+        let newArrDep = try await apiService.getTripArrivalDepartureAtStop(
+            stopID: arrivalDeparture.stopID,
+            tripID: arrivalDeparture.tripID,
+            serviceDate: arrivalDeparture.serviceDate,
+            vehicleID: arrivalDeparture.vehicleID,
+            stopSequence: arrivalDeparture.stopSequence
+        ).entry
         
+        await MainActor.run {
+            self.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
+            self.tripDetailsController.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
+        }
+    }
+
+    private func loadTripDetails(isProgrammatic: Bool) async throws {
+        guard let apiService = application.apiService else {
+            return
+        }
+
         // Let the user still look at data if there was already details from a previous request.
         self.floatingPanel.surfaceView.grabberHandle.isHidden = self.tripDetailsController.tripDetails == nil
         
-        let op = apiService.getTrip(tripID: tripConvertible.trip.id, vehicleID: tripConvertible.vehicleID, serviceDate: tripConvertible.serviceDate)
-        op.complete { [weak self] result in
-            guard let self = self else { return }
+        let trip = try await apiService.getTrip(tripID: tripConvertible.trip.id, vehicleID: tripConvertible.vehicleID, serviceDate: tripConvertible.serviceDate).entry
             
-            switch result {
-            case .failure(let error):
-                self.application.displayError(error)
-                self.dataLoadFeedbackGenerator.dataLoad(.failed)
-            case .success(let response):
-                self.tripDetailsController.tripDetails = response.entry
-                self.mapView.updateAnnotations(with: response.entry.stopTimes)
+        await MainActor.run {
+            self.tripDetailsController.tripDetails = trip
                 
-                self.currentTripStatus = response.entry.status
+            self.mapView.updateAnnotations(with: trip.stopTimes)
                 
-                // In cases where TripStatus.coordinates is (0,0), we don't want to show it.
-                var annotationsToShow = self.mapView.annotations.filter { !($0 is MKUserLocation) }
-                annotationsToShow.removeAll(where: { $0.coordinate.isNullIsland })
+            self.currentTripStatus = trip.status
                 
-                if !self.mapView.hasBeenTouched {
-                    self.mapView.showAnnotations(annotationsToShow, animated: true)
-                }
+            // In cases where TripStatus.coordinates is (0,0), we don't want to show it.
+            var annotationsToShow = self.mapView.annotations.filter { !($0 is MKUserLocation) }
+            annotationsToShow.removeAll(where: { $0.coordinate.isNullIsland })
                 
-                if let arrivalDeparture = self.tripConvertible.arrivalDeparture {
-                    let userDestinationStopTime = response.entry.stopTimes.filter { $0.stopID == arrivalDeparture.stopID }.first
-                    self.selectedStopTime = userDestinationStopTime
-                }
+            if !self.mapView.hasBeenTouched {
+                self.mapView.showAnnotations(annotationsToShow, animated: true)
+            }
                 
-                self.floatingPanel.surfaceView.grabberHandle.isHidden = false
-                
-                if isProgrammatic && !self.mapView.hasBeenTouched {
-                    self.floatingPanel.show(animated: true) {
-                        self.floatingPanel.move(to: .half, animated: true)
-                    }
-                }
-                
-                self.dataLoadFeedbackGenerator.dataLoad(.success)
+            if let arrivalDeparture = self.tripConvertible.arrivalDeparture {
+                let userDestinationStopTime = trip.stopTimes.filter { $0.stopID == arrivalDeparture.stopID }.first
+                self.selectedStopTime = userDestinationStopTime
             }
             
-            self.navigationItem.rightBarButtonItem = self.reloadButton
-            self.tripDetailsController.progressView.isHidden = true
+            self.floatingPanel.surfaceView.grabberHandle.isHidden = false
         }
-        tripDetailsOperation = op
-        
-        self.tripDetailsController.progressView.isHidden = false
-        self.tripDetailsController.progressView.observedProgress = op.progress
     }
     
     // MARK: - Map Data
     
     private var routePolyline: MKPolyline?
     
-    private func loadMapPolyline(isProgrammatic: Bool) {
+    private func loadMapPolyline(isProgrammatic: Bool) async throws {
         guard
-            let apiService = application.betterAPIService,
+            let apiService = application.apiService,
             routePolyline == nil // No need to reload the polyline if we already have it
         else {
             return
         }
         
-        Task {
-            do {
-                let response = try await apiService.getShape(id: tripConvertible.trip.shapeID)
-                await MainActor.run {
-                    guard let polyline = response.entry.polyline else {
-                        return
-                    }
-                    self.routePolyline = polyline
-                    self.mapView.addOverlay(polyline)
-                    if !self.mapView.hasBeenTouched {
-                        self.mapView.visibleMapRect = self.mapView.mapRectThatFits(polyline.boundingMapRect, edgePadding: UIEdgeInsets(top: 60, left: 20, bottom: 128, right: 20))
-                    }
-                }
-            } catch {
-                self.application.displayError(error)
+        let response = try await apiService.getShape(id: tripConvertible.trip.shapeID)
+        await MainActor.run {
+            guard let polyline = response.entry.polyline else {
+                return
+            }
+            self.routePolyline = polyline
+            self.mapView.addOverlay(polyline)
+            if !self.mapView.hasBeenTouched {
+                self.mapView.visibleMapRect = self.mapView.mapRectThatFits(polyline.boundingMapRect, edgePadding: UIEdgeInsets(top: 60, left: 20, bottom: 128, right: 20))
             }
         }
     }
@@ -411,9 +397,44 @@ class TripViewController: UIViewController,
         loadData(isProgrammatic: false)
     }
     
+    private var loadDataTask: Task<Void, Never>?
     private func loadData(isProgrammatic: Bool) {
-        loadTripDetails(isProgrammatic: isProgrammatic)
-        loadMapPolyline(isProgrammatic: isProgrammatic)
+        if let loadDataTask {
+            loadDataTask.cancel()
+        }
+
+        loadDataTask = Task {
+            self.navigationItem.rightBarButtonItem = self.activityIndicatorButton
+
+            do {
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    group.addTask {
+                        try await self.loadTripDetails(isProgrammatic: isProgrammatic)
+                    }
+
+                    group.addTask {
+                        try await self.loadTripConvertible(isProgrammatic: isProgrammatic)
+                    }
+
+                    group.addTask {
+                        try await self.loadMapPolyline(isProgrammatic: isProgrammatic)
+                    }
+
+                    try await group.waitForAll()
+                }
+
+                await MainActor.run {
+                    self.dataLoadFeedbackGenerator.dataLoad(.success)
+                }
+            } catch {
+                await self.application.displayError(error)
+                await MainActor.run {
+                    self.dataLoadFeedbackGenerator.dataLoad(.failed)
+                }
+            }
+
+            self.navigationItem.rightBarButtonItem = self.reloadButton
+        }
     }
     
     // MARK: - Map View

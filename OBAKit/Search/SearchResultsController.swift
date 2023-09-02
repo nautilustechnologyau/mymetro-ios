@@ -101,14 +101,14 @@ public class SearchResultsController: UIViewController, AppContext, OBAListViewD
     }
 
     private func row(for agencyVehicle: AgencyVehicle) -> AnyOBAListViewItem? {
-        guard let vehicleID = agencyVehicle.vehicleID, application.restAPIService != nil else { return nil }
+        guard let vehicleID = agencyVehicle.vehicleID, application.apiService != nil else { return nil }
         return OBAListRowView.SubtitleViewModel(title: vehicleID, subtitle: agencyVehicle.agencyName, accessoryType: .none) { _ in
             self.didSelectAgencyVehicle(vehicleID: vehicleID)
         }.typeErased
     }
 
     private func didSelectAgencyVehicle(vehicleID: String) {
-        guard let apiService = application.betterAPIService else { return }
+        guard let apiService = application.apiService else { return }
 
         Task(priority: .userInitiated) {
             do {
@@ -119,7 +119,7 @@ public class SearchResultsController: UIViewController, AppContext, OBAListViewD
                     self.delegate?.dismissModalController(self)
                 }
             } catch {
-                self.application.displayError(error)
+                await self.application.displayError(error)
             }
         }
     }

@@ -203,7 +203,9 @@ public class MapRegionManager: NSObject,
 
         mapView.delegate = self
 
-        renderRegionsOnMap()
+        Task { @MainActor [weak self] in
+            await self?.renderRegionsOnMap()
+        }
     }
 
     deinit {
@@ -213,7 +215,6 @@ public class MapRegionManager: NSObject,
         application.locationService.removeDelegate(self)
         application.regionsService.removeDelegate(self)
         regionChangeRequestTimer?.invalidate()
-        requestStopsOperation?.cancel()
     }
 
     // MARK: - Global Map Helpers
@@ -229,7 +230,7 @@ public class MapRegionManager: NSObject,
     // MARK: - Data Loading
 
     func requestDataForMapRegion() async {
-        guard let apiService = application.betterAPIService else {
+        guard let apiService = application.apiService else {
             return
         }
 
@@ -343,10 +344,6 @@ public class MapRegionManager: NSObject,
             }
         }
     }
-
-    // MARK: - Operations
-
-    private var requestStopsOperation: DecodableOperation<RESTAPIResponse<[Stop]>>?
 
     // MARK: - Setters
 
@@ -483,7 +480,7 @@ public class MapRegionManager: NSObject,
     // MARK: - Search/Route
 
     func _loadSearchResponse(_ searchResponse: SearchResponse, route: Route) async {
-        guard let apiService = application.betterAPIService else {
+        guard let apiService = application.apiService else {
             return
         }
 
@@ -651,14 +648,17 @@ public class MapRegionManager: NSObject,
     // MARK: - Regions
 
     public func regionsService(_ service: RegionsService, updatedRegionsList regions: [Region]) {
-        renderRegionsOnMap()
+        Task { @MainActor [weak self] in
+            await self?.renderRegionsOnMap()
+        }
     }
 
     public func regionsService(_ service: RegionsService, updatedRegion region: Region) {
         mapView.setVisibleMapRect(region.serviceRect, animated: true)
     }
 
-    private func renderRegionsOnMap() {
+    @MainActor
+    private func renderRegionsOnMap() async {
         mapView.updateAnnotations(with: application.regionsService.regions)
     }
 }
