@@ -23,11 +23,8 @@ class MapViewController: UIViewController,
     MapRegionMapViewDelegate,
     ModalDelegate,
     MapPanelDelegate,
-    GADBannerViewDelegate,
-    GADFullScreenContentDelegate,
     UIContextMenuInteractionDelegate,
     UILargeContentViewerInteractionDelegate {
-
 
     // MARK: - Hoverbar
 
@@ -70,7 +67,10 @@ class MapViewController: UIViewController,
 
         super.init(nibName: nil, bundle: nil)
 
-        self.adController = GoogleAdController(viewController: self)
+        self.adController = GoogleAdController()
+        if adController.isAdEnabled() {
+            self.adController.initInterstitialAd()
+        }
 
         title = Strings.map
         tabBarItem.image = Icons.mapTabIcon
@@ -138,22 +138,6 @@ class MapViewController: UIViewController,
             statusOverlay.leadingAnchor.constraint(equalTo: floatingPanel.surfaceView.leadingAnchor, constant: ThemeMetrics.padding),
             statusOverlay.trailingAnchor.constraint(equalTo: floatingPanel.surfaceView.trailingAnchor, constant: -ThemeMetrics.padding)
         ])
-
-        if adController.isAdEnabled() {
-            adController.initBannerView(belowView: self.floatingPanel.view)
-
-            // adjust toolbar position
-            NSLayoutConstraint.activate([
-                toolbar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ThemeMetrics.controllerMargin),
-                toolbar.topAnchor.constraint(equalTo: adController.bannerView.bottomAnchor, constant: ThemeMetrics.controllerMargin),
-                toolbar.widthAnchor.constraint(equalToConstant: 42.0),
-                locationButton.heightAnchor.constraint(equalTo: locationButton.widthAnchor),
-                weatherButton.heightAnchor.constraint(equalTo: weatherButton.widthAnchor),
-                toggleMapTypeButton.heightAnchor.constraint(equalTo: toggleMapTypeButton.widthAnchor)
-            ])
-
-            adController.initInterstitialAd()
-        }
     }
 
     public override func viewWillAppear(_ animated: Bool) {
@@ -185,12 +169,6 @@ class MapViewController: UIViewController,
 
     public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-
-        if adController.isAdEnabled() {
-            coordinator.animate(alongsideTransition: { _ in
-                self.adController.loadBannerAd()
-            })
-        }
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -376,12 +354,11 @@ class MapViewController: UIViewController,
     ///
     /// - Parameter stop: The stop to display.
     func show(stop: Stop) {
+        application.viewRouter.navigateTo(stop: stop, from: self)
         if adController.isAdEnabled() {
             adController.stopShowCount += 1
-            adController.loadInterstitialAd()
+            adController.loadInterstitialAd(viewController: (self.application.viewRouter.rootController)!)
         }
-
-        application.viewRouter.navigateTo(stop: stop, from: self)
     }
 
     // MARK: - Overlays
@@ -732,7 +709,7 @@ class MapViewController: UIViewController,
 
             if self.adController.isAdEnabled() {
                 self.adController.stopShowCount += 1
-                self.adController.loadInterstitialAd()
+                self.adController.loadInterstitialAd(viewController: (self.tabBarController?.view.window?.rootViewController)!)
             }
 
             return stopController

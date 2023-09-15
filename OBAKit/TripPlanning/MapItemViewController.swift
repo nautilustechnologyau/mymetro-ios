@@ -83,8 +83,9 @@ class MapItemViewController: VisualEffectViewController,
 
         if let url = mapItem.url {
             let row = OBAListRowView.DefaultViewModel(title: url.absoluteString, accessoryType: .none) { _ in
-                let safari = SFSafariViewController(url: url)
-                self.application.viewRouter.present(safari, from: self)
+                // let safari = SFSafariViewController(url: url)
+                // self.application.viewRouter.present(safari, from: self)
+                self.application.open(url, options: [:], completionHandler: nil)
             }
             rows.append(row.typeErased)
         }

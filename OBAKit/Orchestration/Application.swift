@@ -286,8 +286,9 @@ public class Application: CoreApplication, PushServiceDelegate {
         alertBulletin?.showMoreInformationHandler = { url in
             Task { @MainActor in
                 if let topViewController = self.topViewController {
-                    let safari = SFSafariViewController(url: url)
-                    self.viewRouter.present(safari, from: topViewController, isModal: true)
+                    // let safari = SFSafariViewController(url: url)
+                    // self.viewRouter.present(safari, from: topViewController, isModal: true)
+                    self.open(url, options: [:], completionHandler: nil)
                 }
                 else {
                     self.open(url, options: [:], completionHandler: nil)
@@ -448,7 +449,7 @@ public class Application: CoreApplication, PushServiceDelegate {
         let val = UIAccessibility.isVoiceOverRunning ? "YES" : "NO"
         analytics?.setUserProperty?(key: "accessibility", value: val)
     }
-    
+
     // MARK: - Google Ad Initialisation
     @objc public func initialiseGoogleAd() {
         GADMobileAds.sharedInstance().start(completionHandler: nil)

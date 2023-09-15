@@ -17,38 +17,51 @@ class GoogleAdController: NSObject,
                           GADBannerViewDelegate,
                           GADFullScreenContentDelegate {
 
-    var logger = os.Logger(subsystem: "au.mymetro.iphone", category: "MapViewController")
+    var logger = os.Logger(subsystem: "au.mymetro.iphone", category: "GoogleAdController")
     var bannerView: GADBannerView!
     var interstitialAd: GADInterstitialAd?
     var interstitialDisplayedTime: Int64 = 0
     var stopShowCount: Int64 = 0
-    var bannerViewAdded: Bool = false
 
     let minStopShowCountBeforeShowingAd: Int64 = 7
     let minTimeElapsedBeforeShowingAd: Int64 = 60
     let adShowProbablity: Float = 0.4
-    let viewController: UIViewController
-
-    /// This is the default initializer for `AdUtils`.
-    /// - Parameter application: The application object
-    public init(viewController: UIViewController) {
-        self.viewController = viewController
-    }
+    var rootViewController: UIViewController?
+    var belowViewController: UIViewController?
 
     // MARK: - Banner Ad Helper Methods
+
+    public func setRootViewControllers(viewController: UIViewController) {
+        self.rootViewController = viewController
+    }
+
+    public func setBelowViewController(viewController: UIViewController) {
+        self.belowViewController = viewController
+    }
 
     public func isAdEnabled() -> Bool {
         return Bundle.main.object(forInfoDictionaryKey: "GADEnabled") as? Bool ?? false
     }
 
-    public func initBannerView(belowView: UIView? = nil) {
+    public func initBannerView() {
+        // we need a root view controller to display the ad
+        if rootViewController == nil {
+            return
+        }
+
+        if bannerView != nil {
+            if bannerView.isDescendant(of: (rootViewController?.view)!) {
+                bannerView.removeFromSuperview()
+            }
+        }
+
         // In this case, we instantiate the banner with desired ad size.
         bannerView = GADBannerView(adSize: GADAdSizeBanner)
         bannerView.delegate = self
-        bannerView.rootViewController = viewController
+        bannerView.rootViewController = rootViewController
         bannerView.adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADBannerAdUnitID") as? String
 
-        addBannerViewToView(bannerView, belowView: belowView)
+        addBannerViewToView(bannerView)
     }
 
     public func initInterstitialAd() {
@@ -56,45 +69,46 @@ class GoogleAdController: NSObject,
         let adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADInterstitialAdUnitID") as? String ?? ""
         GADInterstitialAd.load(withAdUnitID: adUnitID,
                                request: request,
-                               completionHandler: { [self] ad, error in
-            if let error = error {
-                logger.debug("Failed to load interstitial ad with error: \(error.localizedDescription)")
-                return
-            }
-            interstitialAd = ad
-            interstitialAd?.fullScreenContentDelegate = self
-        }
-        )
+                               completionHandler: {[self] ad, error in
+                                            if let error = error {
+                                                logger.debug("Failed to load interstitial ad with error: \(error.localizedDescription)")
+                                                return
+                                            }
+                                        interstitialAd = ad
+                                        interstitialAd?.fullScreenContentDelegate = self
+                                    })
     }
 
-    public func addBannerViewToView(_ bannerView: GADBannerView, belowView: UIView? = nil) {
-        if !bannerViewAdded {
-            if let belowView = belowView {
-                viewController.view.insertSubview(bannerView, belowSubview: belowView)
-            } else {
-                viewController.view.addSubview(bannerView)
-            }
-            bannerView.translatesAutoresizingMaskIntoConstraints = false
-            bannerViewAdded = true
-            loadBannerAd()
+    public func addBannerViewToView(_ bannerView: GADBannerView) {
+        if bannerView.isDescendant(of: (rootViewController?.view)!) {
+            return
         }
 
-        viewController.view.addConstraints(
+        if belowViewController != nil {
+            rootViewController!.view.insertSubview(bannerView, aboveSubview: belowViewController!.view)
+        } else {
+            rootViewController!.view.addSubview(bannerView)
+        }
+        bannerView.translatesAutoresizingMaskIntoConstraints = false
+
+        rootViewController!.view.removeConstraints(rootViewController!.view.constraints)
+        rootViewController!.view.addConstraints(
             [NSLayoutConstraint(item: bannerView,
-                                attribute: .top,
-                                relatedBy: .equal,
-                                toItem: viewController.view.safeAreaLayoutGuide,
-                                attribute: .top,
-                                multiplier: 1,
-                                constant: 0),
+                attribute: .top,
+                relatedBy: .equal,
+                toItem: rootViewController!.view.safeAreaLayoutGuide,
+                attribute: .top,
+                multiplier: 1,
+                constant: 0),
              NSLayoutConstraint(item: bannerView,
-                                attribute: .centerX,
-                                relatedBy: .equal,
-                                toItem: viewController.view,
-                                attribute: .centerX,
-                                multiplier: 1,
-                                constant: 0)
-            ])
+                attribute: .centerX,
+                relatedBy: .equal,
+                toItem: rootViewController!.view.safeAreaLayoutGuide,
+                attribute: .centerX,
+                multiplier: 1,
+                constant: 0)])
+
+        loadBannerAd()
     }
 
     func loadBannerAd() {
@@ -103,9 +117,9 @@ class GoogleAdController: NSObject,
             // Here safe area is taken into account, hence the view frame is used
             // after the view has been laid out.
             if #available(iOS 11.0, *) {
-                return viewController.view.frame.inset(by: viewController.view.safeAreaInsets)
+                return rootViewController!.view.frame.inset(by: rootViewController!.view.safeAreaInsets)
             } else {
-                return viewController.view.frame
+                return rootViewController!.view.frame
             }
         }()
 
@@ -122,14 +136,13 @@ class GoogleAdController: NSObject,
         logger.debug("GADRequest sent")
     }
 
-    func loadInterstitialAd() {
+    func loadInterstitialAd(viewController: UIViewController) {
         if interstitialAd == nil {
             logger.debug("Interstitial ad has not been loaded yet")
             return
         }
 
         // check probablity
-        // let probablity = CGFloat(Float(arc4random()) / Float(UINT32_MAX))
         let probablity = Float.random(in: 0..<1)
         if probablity < adShowProbablity {
             return
@@ -142,7 +155,7 @@ class GoogleAdController: NSObject,
         }
 
         if stopShowCount > minStopShowCountBeforeShowingAd && interstitialDisplayedTime == 0 {
-            showInterstitialAd()
+            showInterstitialAd(viewController: viewController)
             return
         }
 
@@ -154,17 +167,65 @@ class GoogleAdController: NSObject,
         let currentTimeInSec = Int64(Date().timeIntervalSince1970)
         let timeDiff = currentTimeInSec - interstitialDisplayedTime
         if timeDiff > minTimeElapsedBeforeShowingAd {
-            showInterstitialAd()
+            showInterstitialAd(viewController: viewController)
             return
         }
 
         logger.debug("Not showing ad because it is too early")
     }
 
-    func showInterstitialAd() {
+    func showInterstitialAd(viewController: UIViewController) {
         interstitialAd?.present(fromRootViewController: viewController)
         interstitialDisplayedTime = Int64(Date().timeIntervalSince1970)
         stopShowCount = 0
+    }
+
+    public func hideBannerAd() {
+        if bannerView != nil {
+            if bannerView.isDescendant(of: (rootViewController?.view)!) {
+                bannerView.removeFromSuperview()
+            }
+        }
+
+        if belowViewController != nil {
+            NSLayoutConstraint.activate([
+                belowViewController!.view.bottomAnchor.constraint(equalTo: rootViewController!.view.bottomAnchor),
+                belowViewController!.view.rightAnchor.constraint(equalTo: rootViewController!.view.rightAnchor),
+                belowViewController!.view.leftAnchor.constraint(equalTo: rootViewController!.view.leftAnchor),
+            ])
+            rootViewController!.view.removeConstraints(
+                [NSLayoutConstraint(item: belowViewController!.view!,
+                                   attribute: .top,
+                                   relatedBy: .equal,
+                                   toItem: rootViewController!.view.safeAreaLayoutGuide,
+                                   attribute: .top,
+                                   multiplier: 1,
+                                   constant: 0),
+                 NSLayoutConstraint(item: belowViewController!.view!,
+                                   attribute: .centerX,
+                                   relatedBy: .equal,
+                                   toItem: rootViewController!.view.safeAreaLayoutGuide,
+                                   attribute: .centerX,
+                                   multiplier: 1,
+                                   constant: 0)
+                ])
+            rootViewController!.view.addConstraints(
+                [NSLayoutConstraint(item: belowViewController!.view!,
+                                   attribute: .top,
+                                   relatedBy: .equal,
+                                   toItem: rootViewController!.view.safeAreaLayoutGuide,
+                                   attribute: .top,
+                                   multiplier: 1,
+                                   constant: 0),
+                 NSLayoutConstraint(item: belowViewController!.view!,
+                                   attribute: .centerX,
+                                   relatedBy: .equal,
+                                   toItem: rootViewController!.view.safeAreaLayoutGuide,
+                                   attribute: .centerX,
+                                   multiplier: 1,
+                                   constant: 0)
+                ])
+        }
     }
 
     // MARK: - Banner View Delegates (GADBannerViewDelegate)
@@ -180,8 +241,8 @@ class GoogleAdController: NSObject,
 
     public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
         logger.debug("bannerView:didFailToReceiveAdWithError: \(error.localizedDescription)")
-        bannerView.removeFromSuperview()
-        bannerViewAdded = false
+        hideBannerAd()
+        loadBannerAd()
     }
 
     public func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {

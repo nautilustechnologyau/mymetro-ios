@@ -99,17 +99,18 @@ public class ViewRouter: NSObject, UINavigationControllerDelegate {
         navigate(to: tripController, from: fromController)
     }
 
-    public func rootNavigateTo(page: ClassicApplicationRootController.Page) {
+    public func rootNavigateTo(page: TabViewController.Page) {
         guard let rootController = self.rootController else { return }
-        rootController.navigate(to: page)
+        rootController.tabController.navigate(to: page)
     }
 
     public func navigateTo(alert: TransitAlertViewModel, locale: Locale = .current, from fromController: UIViewController) {
         guard shouldNavigate(from: fromController, to: .transitAlert(alert)) else { return }
 
         if let url = alert.url(forLocale: locale) {
-            let safari = SFSafariViewController(url: url)
-            present(safari, from: fromController, isModal: true)
+            // let safari = SFSafariViewController(url: url)
+            // present(safari, from: fromController, isModal: true)
+            self.application.open(url, options: [:], completionHandler: nil)
         } else {
             let view = TransitAlertDetailViewController(alert)
             present(view, from: fromController)

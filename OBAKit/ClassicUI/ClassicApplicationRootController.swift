@@ -8,68 +8,170 @@
 //
 
 import UIKit
+import SwiftUI
 import OBAKitCore
+import GoogleMobileAds
 
 @objc(OBAClassicApplicationRootController)
-public class ClassicApplicationRootController: UITabBarController {
-    public enum Page: Int {
-        case map = 0
-        case recentStops
-        case bookmarks
-        case more
-    }
-
+public class ClassicApplicationRootController: UIViewController {
     private let application: Application
+    let tabController: TabViewController
+    private let adController: GoogleAdController
 
     @objc public init(application: Application) {
         self.application = application
-
-        self.mapController = MapViewController(application: application)
-        self.recentStopsController = RecentStopsViewController(application: application)
-        self.bookmarksController = BookmarksViewController(application: application)
-        self.moreController = MoreViewController(application: application)
+        self.tabController = TabViewController(application: application)
+        self.adController = GoogleAdController()
 
         super.init(nibName: nil, bundle: nil)
 
         self.application.viewRouter.rootController = self
+        self.view.backgroundColor = ThemeColors.shared.brand // ThemeColors.shared.systemBackground
 
-        let mapNav = application.viewRouter.buildNavigation(controller: self.mapController, prefersLargeTitles: false)
-        let recentStopsNav = application.viewRouter.buildNavigation(controller: self.recentStopsController)
-        let bookmarksNav = application.viewRouter.buildNavigation(controller: self.bookmarksController)
-        let moreNav = application.viewRouter.buildNavigation(controller: self.moreController)
-
-        viewControllers = [mapNav, recentStopsNav, bookmarksNav, moreNav]
-
-        selectedIndex = application.userDataStore.lastSelectedView.rawValue
+        tabController.view.translatesAutoresizingMaskIntoConstraints = false
+        tabController.view.window?.rootViewController = self
     }
-
-    let mapController: MapViewController
-    let recentStopsController: RecentStopsViewController
-    let bookmarksController: BookmarksViewController
-    let moreController: MoreViewController
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public override func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
-        guard
-            let itemIndex = tabBar.items?.firstIndex(of: item),
-            let selectedTab = SelectedTab(rawValue: itemIndex)
-        else {
-            return
-        }
-
-        // If the user is already on the map tab and they tap on the map tab item again, then zoom to their location.
-        if let root = (selectedViewController as? UINavigationController)?.viewControllers.first, root == mapController, selectedTab == .map {
-            mapController.centerMapOnUserLocation()
-        }
-
-        application.userDataStore.lastSelectedView = selectedTab
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
     }
 
-    func navigate(to destination: Page) {
-        navigationController?.popToViewController(self, animated: true)
-        selectedIndex = destination.rawValue
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+
+        self.view.addSubview(tabController.view)
+
+        NSLayoutConstraint.activate([
+            tabController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tabController.view.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tabController.view.leftAnchor.constraint(equalTo: view.leftAnchor),
+            //tabController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            //tabController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
+
+        if self.adController.isAdEnabled() {
+            self.adController.setRootViewControllers(viewController: self)
+            self.adController.setBelowViewController(viewController: tabController)
+            self.adController.initBannerView()
+
+            NSLayoutConstraint.activate([
+                tabController.view.topAnchor.constraint(equalTo: self.adController.bannerView.bottomAnchor),
+                tabController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                tabController.view.rightAnchor.constraint(equalTo: view.rightAnchor),
+                tabController.view.leftAnchor.constraint(equalTo: view.leftAnchor),
+                tabController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                tabController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            ])
+            
+            //view.removeConstraints(view.constraints)
+            /*view.addConstraints(
+                [NSLayoutConstraint(item: tabController.view as Any,
+                                    attribute: .left,
+                                    relatedBy: .equal,
+                                    toItem: view.safeAreaLayoutGuide,
+                                    attribute: .left,
+                                    multiplier: 1,
+                                    constant: 0),
+                 NSLayoutConstraint(item: tabController.view as Any,
+                                    attribute: .right,
+                                    relatedBy: .equal,
+                                    toItem: view.safeAreaLayoutGuide,
+                                    attribute: .right,
+                                    multiplier: 1,
+                                    constant: 0)
+                ])*/
+        } else {
+            NSLayoutConstraint.activate([
+                tabController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                tabController.view.rightAnchor.constraint(equalTo: view.rightAnchor),
+                tabController.view.leftAnchor.constraint(equalTo: view.leftAnchor),
+            ])
+
+            view.removeConstraints(view.constraints)
+            view.addConstraints(
+                [NSLayoutConstraint(item: tabController.view as Any,
+                                    attribute: .top,
+                                    relatedBy: .equal,
+                                    toItem: view.safeAreaLayoutGuide,
+                                    attribute: .top,
+                                    multiplier: 1,
+                                    constant: 0),
+                 NSLayoutConstraint(item: tabController.view as Any,
+                                    attribute: .centerX,
+                                    relatedBy: .equal,
+                                    toItem: view.safeAreaLayoutGuide,
+                                    attribute: .centerX,
+                                    multiplier: 1,
+                                    constant: 0),
+                 NSLayoutConstraint(item: tabController.view as Any,
+                                    attribute: .left,
+                                    relatedBy: .equal,
+                                    toItem: view.safeAreaLayoutGuide,
+                                    attribute: .left,
+                                    multiplier: 1,
+                                    constant: 0),
+                 NSLayoutConstraint(item: tabController.view as Any,
+                                    attribute: .right,
+                                    relatedBy: .equal,
+                                    toItem: view.safeAreaLayoutGuide,
+                                    attribute: .right,
+                                    multiplier: 1,
+                                    constant: 0)
+                ])
+        }
+    }
+
+    public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+
+        if adController.isAdEnabled() {
+            coordinator.animate(alongsideTransition: { _ in
+                self.adController.loadBannerAd()
+            })
+        }
+    }
+
+    public func hideBannerAd() {
+        self.adController.bannerView.removeFromSuperview()
+        NSLayoutConstraint.activate([
+            tabController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tabController.view.rightAnchor.constraint(equalTo: view.rightAnchor),
+            tabController.view.leftAnchor.constraint(equalTo: view.leftAnchor),
+        ])
+        view.removeConstraints([NSLayoutConstraint(item: tabController.view as Any,
+                                                  attribute: .top,
+                                                  relatedBy: .equal,
+                                                  toItem: view.safeAreaLayoutGuide,
+                                                  attribute: .top,
+                                                  multiplier: 1,
+                                                  constant: 0),
+                                NSLayoutConstraint(item: tabController.view as Any,
+                                                  attribute: .centerX,
+                                                  relatedBy: .equal,
+                                                  toItem: view.safeAreaLayoutGuide,
+                                                  attribute: .centerX,
+                                                  multiplier: 1,
+                                                  constant: 0)
+                              ])
+        view.addConstraints(
+            [NSLayoutConstraint(item: tabController.view as Any,
+                                attribute: .top,
+                                relatedBy: .equal,
+                                toItem: view.safeAreaLayoutGuide,
+                                attribute: .top,
+                                multiplier: 1,
+                                constant: 0),
+             NSLayoutConstraint(item: tabController.view as Any,
+                                attribute: .centerX,
+                                relatedBy: .equal,
+                                toItem: view.safeAreaLayoutGuide,
+                                attribute: .centerX,
+                                multiplier: 1,
+                                constant: 0)
+            ])
     }
 }

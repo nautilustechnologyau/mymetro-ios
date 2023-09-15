@@ -21,8 +21,6 @@ class TripViewController: UIViewController,
                           Previewable {
     // MARK: - Ad
 
-    var adController: GoogleAdController!
-
     public let application: Application
     
     private(set) var tripConvertible: TripConvertible
@@ -34,8 +32,6 @@ class TripViewController: UIViewController,
         self.tripConvertible = tripConvertible
         
         super.init(nibName: nil, bundle: nil)
-        
-        self.adController = GoogleAdController(viewController: self)
     }
     
     init(application: Application, arrivalDeparture: ArrivalDeparture) {
@@ -43,8 +39,6 @@ class TripViewController: UIViewController,
         self.tripConvertible = TripConvertible(arrivalDeparture: arrivalDeparture)
         
         super.init(nibName: nil, bundle: nil)
-        
-        self.adController = GoogleAdController(viewController: self)
     }
     
     required init?(coder: NSCoder) {
@@ -94,10 +88,6 @@ class TripViewController: UIViewController,
             appearance.configureWithDefaultBackground()
             navigationItem.scrollEdgeAppearance = appearance
         }
-        
-        if !isBeingPreviewed && adController.isAdEnabled() {
-            adController.initBannerView(belowView: self.floatingPanel.view)
-        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -123,12 +113,6 @@ class TripViewController: UIViewController,
     
     public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        
-        if adController.isAdEnabled() && !isBeingPreviewed {
-            coordinator.animate(alongsideTransition: { _ in
-                self.adController.loadBannerAd()
-            })
-        }
     }
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -169,10 +153,6 @@ class TripViewController: UIViewController,
         }
         
         tripDetailsController.listView.applyData()
-        
-        if adController.isAdEnabled() {
-            adController.initBannerView(belowView: self.floatingPanel.view)
-        }
     }
     
     // MARK: - Idle Timer

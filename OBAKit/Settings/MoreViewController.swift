@@ -42,6 +42,7 @@ public class MoreViewController: UIViewController,
         let contactUs = OBALoc("more_controller.contact_us", value: "Contact Us", comment: "A button to contact transit agency/developers.")
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: contactUs, style: .plain, target: self, action: #selector(showContactUsDialog(_:)))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: Strings.settings, style: .plain, target: self, action: #selector(showSettings))
+        
 
         application.regionsService.addDelegate(self)
     }
@@ -173,8 +174,9 @@ public class MoreViewController: UIViewController,
                     comment: "A link to the app's Privacy Policy"),
                 onSelectAction: { _ in
                     guard let url = Bundle.main.privacyPolicyURL else { return }
-                    let safari = SFSafariViewController(url: url)
-                    self.application.viewRouter.present(safari, from: self)
+                    // let safari = SFSafariViewController(url: url)
+                    // self.application.viewRouter.present(safari, from: self)
+                    self.application.open(url, options: [:], completionHandler: nil)
                 })
         ])
     }

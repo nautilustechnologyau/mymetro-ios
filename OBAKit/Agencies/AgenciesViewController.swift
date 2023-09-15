@@ -66,7 +66,9 @@ class AgenciesViewController: TaskController<[AgencyWithCoverage]>, OBAListViewD
     }
 
     func onSelectAgency(_ agency: AgencyWithCoverage) {
-        let safari = SFSafariViewController(url: agency.agency.agencyURL)
-        self.application.viewRouter.present(safari, from: self)
+        // let safari = SFSafariViewController(url: agency.agency.agencyURL)
+        // self.application.viewRouter.present(safari, from: self)
+
+        self.application.open(agency.agency.agencyURL, options: [:], completionHandler: nil)
     }
 }

@@ -156,6 +156,7 @@ public class BookmarksViewController: UIViewController,
 
         let sortMenu = UIMenu(title: Strings.sort, options: .displayInline, children: [groupSortAction, distanceSortAction])
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "MORE", image: UIImage(systemName: "arrow.up.arrow.down.circle"), menu: sortMenu)
+        // navigationItem.rightBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
     }
 
     // MARK: - Refresh Control

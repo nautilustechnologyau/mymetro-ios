@@ -85,8 +85,9 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
         }
 
         if let url = navigationAction.request.url {
-            let safari = SFSafariViewController(url: url)
-            application.viewRouter.present(safari, from: self)
+            // let safari = SFSafariViewController(url: url)
+            // application.viewRouter.present(safari, from: self)
+            self.application.open(url, options: [:], completionHandler: nil)
         }
 
         decisionHandler(.cancel)
