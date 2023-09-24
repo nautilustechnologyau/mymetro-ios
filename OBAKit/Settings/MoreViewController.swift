@@ -41,8 +41,8 @@ public class MoreViewController: UIViewController,
 
         let contactUs = OBALoc("more_controller.contact_us", value: "Contact Us", comment: "A button to contact transit agency/developers.")
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: contactUs, style: .plain, target: self, action: #selector(showContactUsDialog(_:)))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: Strings.settings, style: .plain, target: self, action: #selector(showSettings))
-        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"), style: .plain, target: self, action: #selector(showSettings))
+        navigationItem.rightBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
 
         application.regionsService.addDelegate(self)
     }
@@ -69,6 +69,7 @@ public class MoreViewController: UIViewController,
     public func items(for listView: OBAListView) -> [OBAListViewSection] {
         return [
             headerSection,
+            removeAdsSection,
             debugSection,
             updatesAndAlertsSection,
             myLocationSection,
@@ -113,6 +114,25 @@ public class MoreViewController: UIViewController,
         return OBAListViewSection(id: "updates_and_alerts", title: header, contents: [
             OBAListRowView.DefaultViewModel(title: row, onSelectAction: { _ in
                 self.application.viewRouter.navigate(to: AgencyAlertsViewController(application: self.application), from: self)
+            })
+        ])
+    }
+
+    // MARK: Remove ads section
+    var removeAdsSection: OBAListViewSection {
+        let header = OBALoc(
+            "more_controller.remove_ads.header",
+            value: "Remove Ads",
+            comment: "Remove Ads header text")
+
+        let row = OBALoc(
+            "more_controller.buy_ads_free_subscription",
+            value: "Buy Ads Free Subscription",
+            comment: "Buy Ads Free Subscription row in the More controller")
+
+        return OBAListViewSection(id: "remove_ads", title: header, contents: [
+            OBAListRowView.DefaultViewModel(title: row, onSelectAction: { _ in
+                self.application.viewRouter.navigate(to: SubscriptionViewController(application: self.application), from: self)
             })
         ])
     }

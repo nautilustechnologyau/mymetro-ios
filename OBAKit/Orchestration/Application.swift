@@ -81,6 +81,12 @@ public class Application: CoreApplication, PushServiceDelegate {
     lazy var searchManager = SearchManager(application: self)
 
     @objc lazy var userActivityBuilder = UserActivityBuilder(application: self)
+    
+    @StateObject
+    var entitlementManager: EntitlementManager
+
+    @StateObject
+    var purchaseManager: PurchaseManager
 
     /// Handles all deep-linking into the app.
     @objc public private(set) lazy var appLinksRouter: AppLinksRouter? = {
@@ -134,6 +140,11 @@ public class Application: CoreApplication, PushServiceDelegate {
         self.config = config
 
         analytics = config.analytics
+
+        let entitlementManager = EntitlementManager()
+        let purchaseManager = PurchaseManager(entitlementManager: entitlementManager)
+        self._entitlementManager = StateObject(wrappedValue: entitlementManager)
+        self._purchaseManager = StateObject(wrappedValue: purchaseManager)
 
         super.init(config: config)
 

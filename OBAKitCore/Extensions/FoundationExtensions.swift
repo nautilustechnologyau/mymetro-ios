@@ -98,6 +98,16 @@ public extension Bundle {
         return URL(string: str)
     }
 
+    /// A helper method for accessing the bundle's privacy policy URL
+    var termsOfUseURL: URL? {
+        guard
+            let dict = OBAKitConfig,
+            let str = dict["TermsOfUseURL"] as? String
+        else { return nil }
+
+        return URL(string: str)
+    }
+
     var appDevelopersEmailAddress: String? {
         guard let dict = OBAKitConfig else { return nil }
         return dict["AppDevelopersEmailAddress"] as? String

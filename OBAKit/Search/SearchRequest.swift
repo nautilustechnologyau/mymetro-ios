@@ -82,7 +82,7 @@ public class SearchManager: NSObject {
     private func searchAddress(request: SearchRequest) async {
         guard
             let apiService = application.apiService,
-            let mapRect = application.mapRegionManager.lastVisibleMapRect
+            let mapRect = await application.mapRegionManager.lastVisibleMapRect
         else {
             return
         }
@@ -103,14 +103,14 @@ public class SearchManager: NSObject {
     private func searchRoute(request: SearchRequest) async {
         guard
             let apiService = application.apiService,
-            let mapRect = application.mapRegionManager.lastVisibleMapRect
+            let mapRect = await application.mapRegionManager.lastVisibleMapRect
         else {
             return
         }
 
         do {
             let response = try await apiService.getRoute(query: request.query, region: CLCircularRegion(mapRect: mapRect))
-            self.application.mapRegionManager.searchResponse = SearchResponse(request: request, results: response.list, boundingRegion: nil, error: nil)
+            await self.application.mapRegionManager.searchResponse = SearchResponse(request: request, results: response.list, boundingRegion: nil, error: nil)
         } catch {
             await self.application.displayError(error)
         }

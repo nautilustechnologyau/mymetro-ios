@@ -73,7 +73,7 @@ public class TabViewController: UITabBarController {
         navigationController?.popToViewController(self, animated: true)
         selectedIndex = destination.rawValue
     }
-    
+
     public override func viewDidLoad() {
         super.viewDidLoad()
         self.mapController.navigationController?.view.translatesAutoresizingMaskIntoConstraints = false

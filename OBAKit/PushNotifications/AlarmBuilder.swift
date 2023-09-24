@@ -85,7 +85,7 @@ class AlarmBuilder: NSObject {
     private func createAlarm(minutes: Int) async {
         guard
             let modelService = application.obacoService,
-            let pushService = application.pushService,
+            let pushService = await application.pushService,
             let currentRegion = application.currentRegion
         else { return }
 

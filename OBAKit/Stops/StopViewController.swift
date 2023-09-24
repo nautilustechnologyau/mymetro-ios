@@ -282,6 +282,7 @@ public class StopViewController: UIViewController,
 
         let filterMenuButton = UIBarButtonItem(title: filterButtonTitle, image: filterButtonImage, menu: filterMenu())
         let moreMenuButton = UIBarButtonItem(title: "MORE", image: UIImage(systemName: "ellipsis.circle"), menu: pulldownMenu())
+        moreMenuButton.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
         navigationItem.rightBarButtonItems = [moreMenuButton, filterMenuButton]
     }
 

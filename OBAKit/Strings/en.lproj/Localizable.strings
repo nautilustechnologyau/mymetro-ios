@@ -290,6 +290,12 @@
 /* Alerts for region row in the More controller */
 "more_controller.alerts_for_region" = "Alerts";
 
+/* Remove Ads header text */
+"more_controller.remove_ads.header" = "Remove Ads";
+
+/* Buy ads free subscription row in the More controller */
+"more_controller.buy_ads_free_subscription" = "Buy Ads Free Subscription";
+
 /* Title of the action sheet option for contacting the developers of the app. */
 "more_controller.contact_developers" = "Feature Request/Bug Report";
 
@@ -764,3 +770,20 @@
 /* Format string with placeholders for distance from stop, walking time to stop, and predicted arrival time. e.g. 1.2 km, 17m: arriving at 09:41 A.M. */
 "walk_time_view.distance_time_fmt" = "%1$@, %2$@: arriving at %3$@";
 
+/* Title of the subscription controller */
+"subscription_controller.title" = "Remove Ads";
+
+/* Title of header section of subscription controller */
+"subscription_controller.header" = "Tired of Ads? Purchase Ads Free Subscription and Remove Them Now!";
+
+/* Description of header section of subscription controller */
+"subscription_controller.description" = "Though we are trying to show ads at a minimal level, we understand that seeing ads sometimes can be annoying. However, ads help us covering the huge cost to keep infrastructures running on the cloud. It also supports the on-going development to improve the app.\n\nPurchasing subscription is optional. By purchasing the subscription you will enjoy ads free in-app experience. Your purchase will be a great support for us!";
+
+/* Terms of header section of subscription controller */
+"subscription_controller.terms" = "Payments will be charged using your Apple ID. The subscription will be automatically renewed unless you cancel at least 24 hours before the expiry. You can manage your subscription from your account settings in App Store.\n\nBy purchasing subscription you are agreeing to MyMetro Terms of Use.";
+
+/* Title of the privacy button of subscription controller */
+"subscription_controller.privacy_title" = "Privacy Policy";
+
+/* Title of the terms button of subscription controller */
+"subscription_controller.terms_title" = "Terms of Use";

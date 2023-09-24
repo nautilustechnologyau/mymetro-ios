@@ -59,7 +59,8 @@ public class BookmarksViewController: UIViewController,
         tabBarItem.image = Icons.bookmarksTabIcon
         tabBarItem.selectedImage = Icons.bookmarksSelectedTabIcon
 
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: OBALoc("bookmarks_controller.groups_button_title", value: "Edit", comment: "Groups button title in Bookmarks controller"), style: .plain, target: self, action: #selector(manageGroups))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .edit, target: self, action: #selector(manageGroups))
+        navigationItem.leftBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
 
         application.userDefaults.register(defaults: [
             userDefaultsKeys.sortBookmarksByGroup.rawValue: true
@@ -156,7 +157,7 @@ public class BookmarksViewController: UIViewController,
 
         let sortMenu = UIMenu(title: Strings.sort, options: .displayInline, children: [groupSortAction, distanceSortAction])
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "MORE", image: UIImage(systemName: "arrow.up.arrow.down.circle"), menu: sortMenu)
-        // navigationItem.rightBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
+        navigationItem.rightBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
     }
 
     // MARK: - Refresh Control

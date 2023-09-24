@@ -1,0 +1,144 @@
+{
+  "identifier" : "DB3E2DE1",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "1671151878",
+    "_askToBuyEnabled" : false,
+    "_compatibilityTimeRate" : {
+      "3" : 6
+    },
+    "_developerTeamID" : "54X6WQM88U",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 717243060.90055597,
+    "_locale" : "en_US",
+    "_storefront" : "AUS",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ],
+    "_timeRate" : 1002
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21383852",
+      "localizations" : [
+
+      ],
+      "name" : "MyMetro Ads Free Subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "0.49",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6466617826",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Enjoy ads free in-app experience",
+              "displayName" : "Monthly Ads Free",
+              "locale" : "en_AU"
+            },
+            {
+              "description" : "Enjoy ads free in-app experience",
+              "displayName" : "Monthly Ads Free",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "MYMETRO_ADS_FREE_MONTHLY",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly Ads Free",
+          "subscriptionGroupID" : "21383852",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "5.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6464111169",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Enjoy ads free in-app experience",
+              "displayName" : "Yearly Ads Free",
+              "locale" : "en_AU"
+            },
+            {
+              "description" : "Enjoy ads free in-app experience",
+              "displayName" : "Yearly Ads Free",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "MYMETRO_ADS_FREE_YEARLY",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Yearly Ads Free",
+          "subscriptionGroupID" : "21383852",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

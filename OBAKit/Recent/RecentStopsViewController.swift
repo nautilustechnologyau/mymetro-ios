@@ -41,7 +41,8 @@ public class RecentStopsViewController: UIViewController,
     public override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: OBALoc("recent_stops.delete_all", value: "Delete All", comment: "A button that deletes all of the recent stops in the app."), style: .plain, target: self, action: #selector(deleteAll))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "trash.circle"), style: .plain, target: self, action: #selector(deleteAll))
+        navigationItem.rightBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
 
         view.backgroundColor = ThemeColors.shared.systemBackground
         view.addSubview(listView)

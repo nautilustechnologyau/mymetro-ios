@@ -67,7 +67,7 @@ class MapViewController: UIViewController,
 
         super.init(nibName: nil, bundle: nil)
 
-        self.adController = GoogleAdController()
+        self.adController = GoogleAdController.getInstance(application: application)
         if adController.isAdEnabled() {
             self.adController.initInterstitialAd()
         }
