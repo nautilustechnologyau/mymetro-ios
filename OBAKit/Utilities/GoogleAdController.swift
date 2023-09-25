@@ -121,6 +121,11 @@ class GoogleAdController: NSObject,
     }
 
     func loadBannerAd() {
+        // we need a root view controller to display the ad
+        if rootViewController == nil || bannerView == nil {
+            return
+        }
+
         // Step 2 - Determine the view width to use for the ad width.
         let frame = { () -> CGRect in
             // Here safe area is taken into account, hence the view frame is used

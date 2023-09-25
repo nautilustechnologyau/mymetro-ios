@@ -6,10 +6,10 @@ class PurchaseManager: NSObject, ObservableObject {
 
     private let productIds = ["MYMETRO_ADS_FREE_MONTHLY", "MYMETRO_ADS_FREE_YEARLY"]
 
-    @Published
+    //@Published
     private(set) var products: [Product] = []
     
-    @Published
+    //@Published
     private(set) var purchasedProductIDs = Set<String>()
 
     private let entitlementManager: EntitlementManager
@@ -46,6 +46,8 @@ class PurchaseManager: NSObject, ObservableObject {
         case let .success(.unverified(_, error)):
             // Successful purchase but transaction/receipt can't be verified
             // Could be a jailbroken phone
+            // await transaction.finish()
+            // print("\(error)")
             break
         case .pending:
             // Transaction waiting on SCA (Strong Customer Authentication) or
@@ -87,8 +89,10 @@ class PurchaseManager: NSObject, ObservableObject {
             for await verificationResult in Transaction.updates {
                 // Using verificationResult directly would be better
                 // but this way works for this tutorial
-                await self.updatePurchasedProducts()
+                // print(verificationResult)
+                // await self.updatePurchasedProducts()
             }
+            await self.updatePurchasedProducts()
         }
     }
 }
@@ -101,6 +105,9 @@ extension PurchaseManager: SKPaymentTransactionObserver {
             } catch {
                 print(error)
             }
+        }
+        for transaction in transactions {
+            print(transaction)
         }*/
     }
 
