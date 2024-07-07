@@ -260,3 +260,5 @@ fileprivate class HTMLBuilder {
         HTML.append(tag.closing)
     }
 }
+
+// swiftlint:enable function_body_length

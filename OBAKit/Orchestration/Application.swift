@@ -16,6 +16,9 @@ import SafariServices
 import MapKit
 import GoogleMobileAds
 import SwiftUI
+#if canImport(Stripe)
+import StripeApplePay
+#endif
 
 // MARK: - Protocols
 
@@ -68,6 +71,13 @@ public class Application: CoreApplication, PushServiceDelegate {
     private let config: AppConfig
 
     // MARK: - Public Properties
+
+    lazy var donationsManager = DonationsManager(
+        bundle: applicationBundle,
+        userDefaults: userDefaults,
+        obacoService: obacoService,
+        analytics: analytics
+    )
 
     /// Responsible for figuring out how to navigate between view controllers.
     @MainActor
@@ -279,6 +289,29 @@ public class Application: CoreApplication, PushServiceDelegate {
         }
     }
 
+    private var presentDonationUIOnActive = false
+    private var presentAddRegionAlertOnActive = false
+    private var donationPromptID: String?
+
+    public func pushService(_ pushService: PushService, receivedDonationPrompt id: String?) {
+        guard let topViewController else {
+            presentDonationUIOnActive = true
+            donationPromptID = id
+            return
+        }
+
+        presentDonationUI(topViewController, id: id)
+    }
+
+    private func presentDonationUI(_ presentingController: UIViewController, id: String?) {
+#if canImport(Stripe)
+        analytics?.reportEvent?(.userAction, label: AnalyticsLabels.donationPushNotificationTapped, value: id)
+
+        let learnMoreView = donationsManager.buildLearnMoreView(presentingController: presentingController, donationPushNotificationID: id)
+        presentingController.present(UIHostingController(rootView: learnMoreView), animated: true)
+#endif
+    }
+
     // MARK: - Alerts Store
 
     private var alertBulletin: AgencyAlertBulletin?
@@ -319,7 +352,7 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     /// Provides access the topmost view controller in the app, if one exists.
     private var topViewController: UIViewController? {
-        delegate?.uiApplication?.windows.first?.topViewController
+        delegate?.uiApplication?.keyWindowFromScene?.topViewController
     }
 
     @objc public func application(_ application: UIApplication, didFinishLaunching options: [AnyHashable: Any]) {
@@ -338,6 +371,24 @@ public class Application: CoreApplication, PushServiceDelegate {
 
         configureConnectivity()
         alertsStore.checkForUpdates()
+
+        if presentDonationUIOnActive, let topViewController {
+            presentDonationUI(topViewController, id: donationPromptID)
+            presentDonationUIOnActive = false
+            donationPromptID = nil
+        }
+
+        if presentAddRegionAlertOnActive, let topViewController {
+            // Show alert for nil addRegion data
+            let alertController = UIAlertController(
+                title: Strings.error,
+                message: OBALoc("region_url.error_messsage", value: "The provided region URL is invalid or does not point to a functional OBA server.", comment: "Error message of Custom Region URL if it's invalid or does not point to a functional OBA server"),
+                preferredStyle: .alert
+            )
+            alertController.addAction(UIAlertAction(title: Strings.ok, style: .default))
+            topViewController.present(alertController, animated: true)
+            presentAddRegionAlertOnActive = false
+        }
     }
 
     @objc public func applicationWillResignActive(_ application: UIApplication) {
@@ -393,20 +444,70 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     @MainActor
     @objc public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+#if canImport(Stripe)
+        if StripeAPI.handleURLCallback(with: url) {
+            return true
+        }
+#endif
+
         guard let scheme = Bundle.main.extensionURLScheme else {
             return false
         }
 
         let router = URLSchemeRouter(scheme: scheme)
-        guard
-            let stopData = router.decode(url: url),
-            let topViewController = topViewController
-        else {
+
+        guard let urlType = router.decodeURLType(from: url) else {
             return false
         }
 
-        viewRouter.navigateTo(stopID: stopData.stopID, from: topViewController)
-        return true
+        switch urlType {
+        case .viewStop(let stopData):
+            guard let topViewController = self.topViewController else { return false }
+            viewRouter.navigateTo(stopID: stopData.stopID, from: topViewController)
+            return true
+        case .addRegion(let regionData):
+            viewRouter.rootNavigateTo(page: .map)
+            Task { @MainActor in
+                do {
+                    guard let regionData else {
+                        presentAddRegionAlertOnActive = true
+                        return
+                    }
+
+                    guard let regionCoordinate = try await self.apiService?.getAgenciesWithCoverage().list.first?.region else {
+                        return
+                    }
+
+                    // Adjustments for coordinate span
+                    var adjustedRegionCoordinate = regionCoordinate
+                    adjustedRegionCoordinate.span.latitudeDelta = 2
+                    adjustedRegionCoordinate.span.longitudeDelta = 2
+
+                    // Create region provider
+                    let regionProvider = RegionPickerCoordinator(regionsService: self.regionsService)
+
+                    // Construct Region from URL data
+                    let currentRegion = Region(name: regionData.name, OBABaseURL: regionData.obaURL, coordinateRegion: adjustedRegionCoordinate, contactEmail: "example@example.com", openTripPlannerURL: regionData.otpURL)
+
+                    // Add and set current region
+                    try await regionProvider.add(customRegion: currentRegion)
+                    try await regionProvider.setCurrentRegion(to: currentRegion)
+                } catch {
+                    presentAddRegionAlertOnActive = true
+                    return
+                }
+            }
+            return true
+        }
+    }
+
+    override public func apiServicesRefreshed() {
+        super.apiServicesRefreshed()
+
+#if canImport(Stripe)
+        donationsManager.obacoService = obacoService
+        donationsManager.refreshStripePublishableKey()
+#endif
     }
 
     // MARK: - Appearance and Themes
@@ -431,6 +532,7 @@ public class Application: CoreApplication, PushServiceDelegate {
     }
 
     // MARK: - Regions Management
+
     public func regionsService(_ service: RegionsService, changedAutomaticRegionSelection value: Bool) {
         let label = value ? AnalyticsLabels.setRegionAutomatically : AnalyticsLabels.setRegionManually
         analytics?.reportEvent?(.userAction, label: label, value: nil)

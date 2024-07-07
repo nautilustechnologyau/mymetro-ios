@@ -52,6 +52,9 @@
 /* The title for the bookmarks controller section that shows bookmarks that aren't in a group. */
 "bookmarks_controller.ungrouped_bookmarks_section.title" = "Bookmarks";
 
+/* Text that appears when you copy something to your clipboard */
+"clipboard.copied_text_confirmation" = "Copied to clipboard";
+
 /* Body of the the alert that appears when you try sending an email without Mail.app set up */
 "contact_us_helper.cant_send_email.body_fmt" = "In order to contact us, you'll need to email us at %@. Please tap 'Copy Debug Info' to copy information to the clipboard that will be helpful for us to fix this problem. Please include this information in your email.";
 
@@ -557,6 +560,9 @@
 /* Settings > Alerts section title */
 "settings_controller.alerts_section.title" = "Agency Alerts";
 
+/* Settings > Debug section > Debug mode */
+"settings_controller.debug_section.debug_mode" = "Debug mode";
+
 /* Settings > Debug section > Refresh regions on every launch */
 "settings_controller.debug_section.always_refresh_regions" = "Refresh regions on every launch";
 
@@ -787,3 +793,5 @@
 
 /* Title of the terms button of subscription controller */
 "subscription_controller.terms_title" = "Terms of Use";
+/* Error message of Custom Region URL if it's invalid or does not point to a functional OBA server */
+"region_url.error_messsage" = "The provided region URL is invalid or does not point to a functional OBA server.";

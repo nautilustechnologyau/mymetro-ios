@@ -53,6 +53,27 @@ public class AnalyticsLabels: NSObject {
 
     /// Label used when 'show my location' button is tapped.'
     @objc public static let mapShowUserLocationButtonTapped = "Clicked My Location Button"
+
+    /// Label used when 'Learn More About Donations' screen is displayed
+    @objc public static let donationLearnMoreShown = "Donation Learn More Shown"
+
+    /// Label used when 'Donate button' is tapped
+    @objc public static let donateButtonTapped = "Donation Button Tapped"
+
+    /// Label used when a donation succeeds
+    @objc public static let donationSuccess = "Donation Success"
+
+    /// Label used when a donation fails due to an unrecoverable system error.
+    @objc public static let donationError = "Donation Error"
+
+    /// Label used when a donation fails due to the user canceling it.
+    @objc public static let donationCanceled = "Donation Canceled"
+
+    /// Label used when a push notification associated with a call for donations is tapped.
+    @objc public static let donationPushNotificationTapped = "Donation Push Notification Tapped"
+
+    /// Label used when a push notification results in a donation
+    @objc public static let donationPushNotificationSuccess = "Donation Push Notification Success"
 }
 
 /// Reported analytics events.
