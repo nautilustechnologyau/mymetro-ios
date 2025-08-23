@@ -46,6 +46,12 @@ public class Region: NSObject, Identifiable, Codable {
     /// The base URL for making OBA REST API requests.
     public let OBABaseURL: URL
 
+    /// The base URL for sidecar server (i.e. OneBusAway.co/Obaco) REST API requests
+    public let sidecarBaseURL: URL?
+
+    /// The base URL for reporting analytics to a Plausible Analytics server
+    public let plausibleAnalyticsServerURL: URL?
+
     /// The base URL for making Service Interface for Real Time Information (SIRI) requests.
     ///
     /// true if this OBA instance supports using the SIRI Real-time APIs to find out real-time
@@ -162,6 +168,8 @@ public class Region: NSObject, Identifiable, Codable {
         case isActive = "active"
         case isCustom = "custom"
         case isExperimental = "experimental"
+        case sidecarBaseURL = "sidecarBaseUrl"
+        case plausibleAnalyticsServerURL = "plausibleAnalyticsServerUrl"
         case OBABaseURL = "obaBaseUrl"
         case siriBaseURL = "siriBaseUrl"
         case openTripPlannerURL = "otpBaseUrl"
@@ -203,6 +211,7 @@ public class Region: NSObject, Identifiable, Codable {
         isCustom = true
 
         self.OBABaseURL = OBABaseURL
+        self.sidecarBaseURL = nil
 
         let bound = RegionBound(lat: coordinateRegion.center.latitude, lon: coordinateRegion.center.longitude, latSpan: coordinateRegion.span.latitudeDelta, lonSpan: coordinateRegion.span.longitudeDelta)
         regionBounds = [bound]
@@ -221,6 +230,7 @@ public class Region: NSObject, Identifiable, Codable {
         paymentWarningTitle = nil
         paymentiOSAppStoreIdentifier = nil
         paymentiOSAppURLScheme = nil
+        plausibleAnalyticsServerURL = nil
         siriBaseURL = nil
         stopInfoURL = nil
         supportsEmbeddedSocial = false
@@ -242,9 +252,11 @@ public class Region: NSObject, Identifiable, Codable {
         isCustom = (try? container.decodeIfPresent(Bool.self, forKey: .isCustom)) ?? false
 
         OBABaseURL = try container.decode(URL.self, forKey: .OBABaseURL)
+        sidecarBaseURL = try? container.decodeIfPresent(URL.self, forKey: .sidecarBaseURL)
         siriBaseURL = try? container.decodeIfPresent(URL.self, forKey: .siriBaseURL)
         openTripPlannerURL = try? container.decodeIfPresent(URL.self, forKey: .openTripPlannerURL)
         stopInfoURL = try? container.decodeIfPresent(URL.self, forKey: .stopInfoURL)
+        plausibleAnalyticsServerURL = try? container.decodeIfPresent(URL.self, forKey: .plausibleAnalyticsServerURL)
 
         regionBounds = try container.decode([RegionBound].self, forKey: .regionBounds)
 
@@ -281,6 +293,8 @@ public class Region: NSObject, Identifiable, Codable {
         try container.encode(isExperimental, forKey: .isExperimental)
         try container.encode(isCustom, forKey: .isCustom)
         try container.encode(OBABaseURL, forKey: .OBABaseURL)
+        try container.encode(sidecarBaseURL, forKey: .sidecarBaseURL)
+        try container.encode(plausibleAnalyticsServerURL, forKey: .plausibleAnalyticsServerURL)
         try container.encodeIfPresent(siriBaseURL, forKey: .siriBaseURL)
         try container.encodeIfPresent(openTripPlannerURL, forKey: .openTripPlannerURL)
         try container.encodeIfPresent(stopInfoURL, forKey: .stopInfoURL)
@@ -320,8 +334,10 @@ public class Region: NSObject, Identifiable, Codable {
             isExperimental == rhs.isExperimental &&
             isCustom == rhs.isCustom &&
             OBABaseURL == rhs.OBABaseURL &&
+            sidecarBaseURL == rhs.sidecarBaseURL &&
             siriBaseURL == rhs.siriBaseURL &&
             openTripPlannerURL == rhs.openTripPlannerURL &&
+            plausibleAnalyticsServerURL == rhs.plausibleAnalyticsServerURL &&
             stopInfoURL == rhs.stopInfoURL &&
             open311Servers == rhs.open311Servers &&
             supportsEmbeddedSocial == rhs.supportsEmbeddedSocial &&
@@ -350,7 +366,9 @@ public class Region: NSObject, Identifiable, Codable {
         hasher.combine(isExperimental)
         hasher.combine(isCustom)
         hasher.combine(OBABaseURL)
+        hasher.combine(sidecarBaseURL)
         hasher.combine(siriBaseURL)
+        hasher.combine(plausibleAnalyticsServerURL)
         hasher.combine(openTripPlannerURL)
         hasher.combine(stopInfoURL)
         hasher.combine(open311Servers)

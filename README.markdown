@@ -20,6 +20,24 @@ See [wiki/Get-Started](https://github.com/OneBusAway/onebusaway-ios/wiki/Get-Sta
 
 The iOS codebase is a white-label product, read more about white-labeling at [wiki/White-Label](https://github.com/OneBusAway/onebusaway-ios/wiki/White-Label).
 
+### Custom Regions
+
+You can quickly add a custom region to the app by creating a specially formed link and then tapping on it in Mobile Safari:
+
+Example:
+
+```
+onebusaway://add-region?name=Unitrans&oba-url=https%3A%2F%2Fonebusaway-unitrans.onrender.com%2F
+```
+
+Breaking it down:
+
+* Scheme: `onebusaway`
+* Host: `add-region`
+* Query Params:
+    * `name` - the name of the region
+    * `oba-url` - the URL encoded address of the server
+
 ## Internationalization and Localization
 
 _Note: There's a lot more to be written on this topic. Don't hesitate to ask questions if something is wrong or confusing._
@@ -72,9 +90,19 @@ Now, replace the file `OBAKitCore/Models/Protobuf/gtfs-realtime.proto` with the 
 
 You can find the latest version of the GTFS-RT protobuf file in the https://github.com/google/transit/ repository.
 
+### Update macOS/Xcode versions for GitHub Actions CI
+
+1. Find the latest version of macOS and Xcode here: https://github.com/actions/runner-images/tree/main/images/macos
+2. Update the `.github/obakittests.yml` file accordingly.
+3. [There's no step 3](https://www.youtube.com/watch?v=ihOxl1v5BRk).
+
 ### Fix "Missing package product" build errors
 
 In Xcode: File Menu -> Packages -> Reset Package Caches
+
+### Update Your App's Package.resolved file
+
+Run the script `scripts/update_package_resolved`
 
 # Third Party Libraries
 

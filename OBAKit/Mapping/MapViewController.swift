@@ -179,7 +179,7 @@ class MapViewController: UIViewController,
 
     @objc func centerMapOnUserLocationViaTap(_ sender: Any?) {
         guard isLoadedAndOnScreen else { return }
-        application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapShowUserLocationButtonTapped, value: nil)
+        application.analytics?.reportEvent(pageURL: "app://localhost/map", label: AnalyticsLabels.mapShowUserLocationButtonTapped, value: nil)
         centerMapOnUserLocation()
     }
 
@@ -221,7 +221,7 @@ class MapViewController: UIViewController,
 
         switch mapStatusViewState {
         case .notDetermined:
-            alert.addAction(title: OBALoc("locationservices_alert_request_access.button", value: "Allow Access to Location", comment: "")) { _ in
+            alert.addAction(title: Strings.continue) { _ in
                 self.application.locationService.requestInUseAuthorization()
             }
             alert.addAction(keepLocationOffButton)
@@ -230,10 +230,8 @@ class MapViewController: UIViewController,
             alert.addAction(keepLocationOffButton)
         case .impreciseLocation:
             alert.addAction(goToSettingsButton)
-            if #available(iOS 14, *) {
-                alert.addAction(title: OBALoc("locationservices_alert_request_precise_location_once.button", value: "Allow Once", comment: "")) { _ in
-                    self.application.locationService.requestTemporaryFullAccuracyAuthorization(withPurposeKey: "MapStatusView")
-                }
+            alert.addAction(title: OBALoc("locationservices_alert_request_precise_location_once.button", value: "Allow Once", comment: "")) { _ in
+                self.application.locationService.requestTemporaryFullAccuracyAuthorization(withPurposeKey: "MapStatusView")
             }
             alert.addAction(title: OBALoc("locationservices_alert_keep_precise_location_off.button", value: "Keep Precise Location Off", comment: ""), handler: nil)
         case .locationServicesUnavailable, .locationServicesOn:
@@ -294,6 +292,7 @@ class MapViewController: UIViewController,
                     self.forecast = forecast
                 }
             } catch {
+                weatherButton.isHidden = true
                 Logger.error(error.localizedDescription)
             }
         }
@@ -524,7 +523,7 @@ class MapViewController: UIViewController,
             // When VoiceOver is running, StopAnnotationView does not display a callout due to
             // VoiceOver limitations with MKMapView. Therefore, we should skip any callouts
             // and just go directly to pushing the stop onto the navigation stack.
-            application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
+            application.analytics?.reportEvent(pageURL: "app://localhost/map", label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
             show(stop: stop)
         }
     }
@@ -542,10 +541,10 @@ class MapViewController: UIViewController,
 
     func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
         if let stop = view.annotation as? Stop {
-            application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
+            application.analytics?.reportEvent(pageURL: "app://localhost/map", label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
             show(stop: stop)
         } else if let bookmark = view.annotation as? Bookmark {
-            application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
+            application.analytics?.reportEvent(pageURL: "app://localhost/map", label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
             show(stop: bookmark.stop)
         }
     }
@@ -566,7 +565,6 @@ class MapViewController: UIViewController,
         }
     }
 
-    @MainActor
     public func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse) {
         Task { @MainActor [weak self] in
             guard let self, let result = response.results.first else { return }
@@ -656,10 +654,8 @@ class MapViewController: UIViewController,
             }
             else {
                 promptUserOnRegionMismatch = false
-                if
-                    let regionMismatchBulletin = RegionMismatchBulletin(application: application),
-                    let uiApp = application.delegate?.uiApplication
-                {
+                if let regionMismatchBulletin = RegionMismatchBulletin(application: application),
+                   let uiApp = application.delegate?.uiApplication {
                     self.regionMismatchBulletin = regionMismatchBulletin
                     self.regionMismatchBulletin?.show(in: uiApp)
                 }

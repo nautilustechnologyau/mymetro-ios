@@ -14,7 +14,7 @@ import OBAKitCore
 // This seems...busted. I can't figure out when this
 // initializer will actually be called, though. Do I even
 // really need it?
-extension StopProblemCode: InputTypeInitiable {
+extension StopProblemCode: @retroactive InputTypeInitiable {
     public init?(string stringValue: String) {
         return nil
     }
@@ -64,7 +64,7 @@ class StopProblemViewController: FormViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.reportProblem, value: "feedback_stop_problem")
+        application.analytics?.reportEvent(pageURL: "app://localhost/stop-problem", label: AnalyticsLabels.reportProblem, value: "feedback_stop_problem")
 
         form
         // Problem Section
@@ -133,7 +133,7 @@ class StopProblemViewController: FormViewController {
 
         do {
             _ = try await apiService.getStopProblem(report: report)
-            self.application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.reportProblem, value: "Reported Stop Problem")
+            self.application.analytics?.reportEvent(pageURL: "app://localhost/stop-problem", label: AnalyticsLabels.reportProblem, value: "Reported Stop Problem")
 
             await MainActor.run {
                 ProgressHUD.showSuccessAndDismiss()

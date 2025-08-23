@@ -10,6 +10,7 @@
 import UIKit
 import CoreLocation
 import OBAKitCore
+import WidgetKit
 
 /// The view controller that powers the Bookmarks tab of the app.
 @objc(OBABookmarksViewController)
@@ -160,11 +161,18 @@ public class BookmarksViewController: UIViewController,
         navigationItem.rightBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
     }
 
+    // MARK: Refresh Widget
+    func reloadWidget() {
+        print("Reloading the widget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "OBAWidget")
+    }
+
     // MARK: - Refresh Control
 
     @objc private func refreshControlPulled() {
         dataLoader.loadData()
         refreshControl.beginRefreshing()
+        reloadWidget()
 
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
             guard let self = self else { return }
@@ -181,6 +189,9 @@ public class BookmarksViewController: UIViewController,
     // MARK: - List view
     public func items(for listView: OBAListView) -> [OBAListViewSection] {
         if sortBookmarksByGroup {
+            return listItemsSortedByGroup()
+        }
+        else if application.locationService.currentLocation == nil {
             return listItemsSortedByGroup()
         }
         else {
@@ -220,17 +231,18 @@ public class BookmarksViewController: UIViewController,
         let title: String
         let body: String
 
-        switch (application.hasDataToMigrate, distanceSortRequestedButUnavailable) {
-        case (true, _):
-            title = Strings.emptyBookmarkTitle
-            body = Strings.emptyBookmarkBodyWithPendingMigration
-        case (false, false):
-            title = Strings.emptyBookmarkTitle
-            body = Strings.emptyBookmarkBody
-        case (false, true):
-            title = Strings.locationUnavailable
-            body = OBALoc("bookmarks_controller.unable_to_sort_by_distance_error", value: "We can't sort your bookmarks by distance because your location is not available.", comment: "An error message displayed on the bookmarks tab when the user has Sort By Distance enabled and their location isn't available.")
-        }
+        if application.hasDataToMigrate {
+                title = Strings.emptyBookmarkTitle
+                body = Strings.emptyBookmarkBodyWithPendingMigration
+            }
+            else if application.userDataStore.bookmarks.isEmpty {
+                title = Strings.emptyBookmarkTitle
+                body = Strings.emptyBookmarkBody
+            }
+            else {
+                // Don't show empty state if we have bookmarks
+                return nil
+            }
 
         return .standard(.init(title: title, body: body))
     }
@@ -269,7 +281,7 @@ public class BookmarksViewController: UIViewController,
     /// Builds a single item array that contains a list of all bookmarks in the current region sorted by distance from the current user.
     private func listItemsSortedByDistance() -> [OBAListViewSection] {
         guard let currentLocation = application.locationService.currentLocation else {
-            return []
+            return listItemsSortedByGroup()
         }
 
         let bookmarks = application.userDataStore.bookmarks.sorted(by: {
@@ -295,8 +307,8 @@ public class BookmarksViewController: UIViewController,
         let deleteConfirmation = UIAction(title: Strings.confirmDelete, image: Icons.delete, attributes: .destructive) { _ in
             // Report remove bookmark event to analytics
             if let routeID = bookmark.routeID, let headsign = bookmark.tripHeadsign {
-                self.application.analytics?.reportEvent?(
-                    .userAction,
+                self.application.analytics?.reportEvent(
+                    pageURL: "app://localhost/bookmarks",
                     label: AnalyticsLabels.removeBookmark,
                     value: AnalyticsLabels.addRemoveBookmarkValue(
                         routeID: routeID,

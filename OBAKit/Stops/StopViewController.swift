@@ -11,9 +11,6 @@ import UIKit
 import OBAKitCore
 import CoreLocation
 import SwiftUI
-#if canImport(Stripe)
-import StripePaymentSheet
-#endif
 
 // swiftlint:disable file_length
 
@@ -101,7 +98,7 @@ public class StopViewController: UIViewController,
         if let region = application.currentRegion {
             application.userDataStore.addRecentStop(stop, region: region)
         }
-        application.analytics?.reportStopViewed?(name: stop.name, id: stop.id, stopDistance: analyticsDistanceToStop)
+        application.analytics?.reportStopViewed(name: stop.name, id: stop.id, stopDistance: analyticsDistanceToStop)
     }
 
     /// Arrival/Departure data for this stop.
@@ -271,18 +268,10 @@ public class StopViewController: UIViewController,
         // On iOS 13+ (SFSymbols 1.0), the symbol name is `line.horizontal.3.decrease.circle`.
         if stopPreferences.hasHiddenRoutes && isListFiltered {
             filterButtonTitle = "FILTER (ON)"
-            if #available(iOS 15, *) {
-                filterButtonImage = UIImage(systemName: "line.3.horizontal.decrease.circle.fill")
-            } else {
-                filterButtonImage = UIImage(systemName: "line.horizontal.3.decrease.circle.fill")
-            }
+            filterButtonImage = UIImage(systemName: "line.3.horizontal.decrease.circle.fill")
         } else {
             filterButtonTitle = "FILTER (OFF)"
-            if #available(iOS 15, *) {
-                filterButtonImage = UIImage(systemName: "line.3.horizontal.decrease.circle")
-            } else {
-                filterButtonImage = UIImage(systemName: "line.horizontal.3.decrease.circle")
-            }
+            filterButtonImage = UIImage(systemName: "line.3.horizontal.decrease.circle")
         }
 
         let filterMenuButton = UIBarButtonItem(title: filterButtonTitle, image: filterButtonImage, menu: filterMenu())
@@ -407,12 +396,7 @@ public class StopViewController: UIViewController,
         var sortMenu: UIMenu
         let sortMenuTitle = OBALoc("stop_preferences_controller.sorting_section.header_title", value: "Sort By", comment: "Title of the Sorting section")
         let sortMenuImage = UIImage(systemName: "arrow.up.arrow.down")
-        if #available(iOS 15, *) {
-            // Submenus in iOS 15 looks better.
-            sortMenu = UIMenu(title: sortMenuTitle, image: sortMenuImage, children: [sortByTime, sortByRoute])
-        } else {
-            sortMenu = UIMenu(title: sortMenuTitle, image: sortMenuImage, options: .displayInline, children: [sortByTime, sortByRoute])
-        }
+        sortMenu = UIMenu(title: sortMenuTitle, image: sortMenuImage, children: [sortByTime, sortByRoute])
 
         return sortMenu
     }
@@ -648,7 +632,6 @@ public class StopViewController: UIViewController,
     }
 
     private func showDonationUI() {
-#if canImport(Stripe)
         guard
             application.donationsManager.donationsEnabled,
             let donationModel = application.donationsManager.buildObservableDonationModel()
@@ -656,20 +639,11 @@ public class StopViewController: UIViewController,
             return
         }
 
-        let learnMoreView = DonationLearnMoreView { [weak self] donated in
-            guard donated else { return }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self?.present(DonationsManager.buildDonationThankYouAlert(), animated: true)
-                self?.application.donationsManager.dismissDonationsRequests()
-                self?.refresh()
-            }
-        }
+        let learnMoreView = DonationLearnMoreView()
             .environmentObject(donationModel)
             .environmentObject(AnalyticsModel(application.analytics))
 
         present(UIHostingController(rootView: learnMoreView), animated: true)
-#endif
     }
 
     private func showDonationDismissUI() {
@@ -1035,7 +1009,7 @@ public class StopViewController: UIViewController,
             return false
         }
 
-        return arrivalDeparture.temporalState == .future
+        return arrivalDeparture.arrivalDepartureMinutes > 1
     }
 
     private var alarmBuilder: AlarmBuilder?
@@ -1108,7 +1082,7 @@ public class StopViewController: UIViewController,
             return
         }
 
-        let url = appLinksRouter.encode(arrivalDeparture: arrivalDeparture, region: region)
+        let url = appLinksRouter.encode(arrivalDeparture: arrivalDeparture, region: region) as Any
 
         let activityController = UIActivityViewController(activityItems: [self, url], applicationActivities: nil)
 

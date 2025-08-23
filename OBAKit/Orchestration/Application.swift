@@ -16,9 +16,6 @@ import SafariServices
 import MapKit
 import GoogleMobileAds
 import SwiftUI
-#if canImport(Stripe)
-import StripeApplePay
-#endif
 
 // MARK: - Protocols
 
@@ -100,7 +97,8 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     /// Handles all deep-linking into the app.
     @objc public private(set) lazy var appLinksRouter: AppLinksRouter? = {
-        let router = AppLinksRouter(baseURL: applicationBundle.deepLinkServerBaseAddress, application: self)
+        let router = AppLinksRouter(application: self)
+
         router?.showStopHandler = { [weak self] stop in
             guard
                 let self = self,
@@ -118,7 +116,7 @@ public class Application: CoreApplication, PushServiceDelegate {
             }
 
             Task(priority: .userInitiated) {
-                await ProgressHUD.show()
+                ProgressHUD.show()
 
                 do {
                     let arrDep = try await apiService.getTripArrivalDepartureAtStop(stopID: deepLink.stopID, tripID: deepLink.tripID, serviceDate: deepLink.serviceDate, vehicleID: deepLink.vehicleID, stopSequence: deepLink.stopSequence).entry
@@ -132,7 +130,7 @@ public class Application: CoreApplication, PushServiceDelegate {
                     await self.displayError(error)
                 }
 
-                await ProgressHUD.dismiss()
+                ProgressHUD.dismiss()
             }
         }
 
@@ -304,12 +302,10 @@ public class Application: CoreApplication, PushServiceDelegate {
     }
 
     private func presentDonationUI(_ presentingController: UIViewController, id: String?) {
-#if canImport(Stripe)
-        analytics?.reportEvent?(.userAction, label: AnalyticsLabels.donationPushNotificationTapped, value: id)
+        analytics?.reportEvent(pageURL: "app://localhost/donations", label: AnalyticsLabels.donationPushNotificationTapped, value: id)
 
         let learnMoreView = donationsManager.buildLearnMoreView(presentingController: presentingController, donationPushNotificationID: id)
         presentingController.present(UIHostingController(rootView: learnMoreView), animated: true)
-#endif
     }
 
     // MARK: - Alerts Store
@@ -389,6 +385,10 @@ public class Application: CoreApplication, PushServiceDelegate {
             topViewController.present(alertController, animated: true)
             presentAddRegionAlertOnActive = false
         }
+
+        if let region = regionsService.currentRegion, let analytics {
+            analytics.updateServer!(defaultDomainURL: region.OBABaseURL, analyticsServerURL: region.plausibleAnalyticsServerURL)
+        }
     }
 
     @objc public func applicationWillResignActive(_ application: UIApplication) {
@@ -444,12 +444,6 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     @MainActor
     @objc public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-#if canImport(Stripe)
-        if StripeAPI.handleURLCallback(with: url) {
-            return true
-        }
-#endif
-
         guard let scheme = Bundle.main.extensionURLScheme else {
             return false
         }
@@ -503,11 +497,7 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     override public func apiServicesRefreshed() {
         super.apiServicesRefreshed()
-
-#if canImport(Stripe)
         donationsManager.obacoService = obacoService
-        donationsManager.refreshStripePublishableKey()
-#endif
     }
 
     // MARK: - Appearance and Themes
@@ -535,16 +525,20 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     public func regionsService(_ service: RegionsService, changedAutomaticRegionSelection value: Bool) {
         let label = value ? AnalyticsLabels.setRegionAutomatically : AnalyticsLabels.setRegionManually
-        analytics?.reportEvent?(.userAction, label: label, value: nil)
+        analytics?.reportEvent(pageURL: "app://localhost/regions", label: label, value: nil)
     }
 
     public override func regionsService(_ service: RegionsService, updatedRegion region: Region) {
         super.regionsService(service, updatedRegion: region)
 
-        analytics?.reportSetRegion?(region.name)
+        if let analytics {
+            analytics.updateServer!(defaultDomainURL: region.OBABaseURL, analyticsServerURL: region.plausibleAnalyticsServerURL)
 
-        if !regionsService.automaticallySelectRegion {
-            analytics?.reportEvent?(.userAction, label: AnalyticsLabels.manuallySelectedRegionChanged, value: region.name)
+            analytics.reportSetRegion(region.name)
+
+            if !regionsService.automaticallySelectRegion {
+                analytics.reportEvent(pageURL: "app://localhost/regions", label: AnalyticsLabels.manuallySelectedRegionChanged, value: region.name)
+            }
         }
     }
 
@@ -556,11 +550,11 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     // MARK: - Analytics
 
-    @objc public private(set) var analytics: Analytics?
+    public private(set) var analytics: Analytics?
 
     private func reportAnalyticsUserProperties() {
         let val = UIAccessibility.isVoiceOverRunning ? "YES" : "NO"
-        analytics?.setUserProperty?(key: "accessibility", value: val)
+        analytics?.setUserProperty(key: "accessibility", value: val)
     }
 
     // MARK: - Google Ad Initialisation
@@ -622,7 +616,7 @@ public class Application: CoreApplication, PushServiceDelegate {
 
         /// Feature status of the Obaco service.
         public var obaco: FeatureStatus {
-            switch (config.obacoBaseURL, application?.obacoService) {
+            switch (application?.regionsService.currentRegion?.sidecarBaseURL, application?.obacoService) {
             case (nil, nil): return .off
             case (_, nil): return .notRunning
             default: return .running
@@ -640,7 +634,7 @@ public class Application: CoreApplication, PushServiceDelegate {
 
         /// Feature status of Deep Linking.
         public var deepLinking: FeatureStatus {
-            switch (config.obacoBaseURL, application?.appLinksRouter) {
+            switch (application?.regionsService.currentRegion?.sidecarBaseURL, application?.appLinksRouter) {
             case (nil, nil): return .off
             case (_, nil): return .notRunning
             default: return .running

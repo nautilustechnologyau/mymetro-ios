@@ -24,16 +24,16 @@ class RegionsModelOperationTests: OBATestCase {
         let response = try await regionsAPIService.getRegions(apiPath: regionsAPIPath)
 
         let regions = response.list
-        expect(regions.count) == 13
+        expect(regions.count) == 17
 
         let tampa = try XCTUnwrap(regions.first)
 
         expect(tampa.regionIdentifier) == 0
         expect(tampa.name) == "Tampa Bay"
-        expect(tampa.versionInfo) == "1.1.11-SNAPSHOT|1|1|11|SNAPSHOT|6950d86123a7a9e5f12065bcbec0c516f35d86d9"
+        expect(tampa.versionInfo) == "2.4.15-cs|2|4|15|cs|d41e1a8978da14e98a2e19d109a23018957db7cf"
         expect(tampa.language) == "en_US"
 
-        expect(tampa.supportsEmbeddedSocial).to(beTrue())
+        expect(tampa.supportsEmbeddedSocial).to(beFalse())
         expect(tampa.supportsOBADiscoveryAPIs).to(beTrue())
         expect(tampa.supportsOTPBikeshare).to(beTrue())
         expect(tampa.supportsSiriRealtimeAPIs).to(beTrue())
@@ -46,14 +46,15 @@ class RegionsModelOperationTests: OBATestCase {
         expect(tampa.twitterURL) == URL(string: "https://mobile.twitter.com/OBA_tampa")!
 
         expect(tampa.OBABaseURL) == URL(string: "https://api.tampa.onebusaway.org/api/")!
+        expect(tampa.sidecarBaseURL) == URL(string: "https://onebusaway.co")!
         expect(tampa.siriBaseURL) == URL(string: "https://tampa.onebusaway.org/onebusaway-api-webapp/siri/")!
         expect(tampa.openTripPlannerURL) == URL(string: "https://otp.prod.obahart.org/otp/")!
         expect(tampa.stopInfoURL).to(beNil())
 
         expect(tampa.paymentWarningBody).to(beNil())
         expect(tampa.paymentWarningTitle).to(beNil())
-        expect(tampa.paymentAndroidAppID) == "co.bytemark.hart"
-        expect(tampa.paymentiOSAppStoreIdentifier) == "1140553099"
+        expect(tampa.paymentAndroidAppID) == "co.bytemark.flamingo"
+        expect(tampa.paymentiOSAppStoreIdentifier) == "1487465395"
         expect(tampa.paymentiOSAppURLScheme) == "fb313213768708402HART"
 
         let open311 = try XCTUnwrap(tampa.open311Servers?.first)
@@ -80,4 +81,15 @@ class RegionsModelOperationTests: OBATestCase {
         expect(pugetSound.centerCoordinate.latitude).to(beCloseTo(47.795091214055))
         expect(pugetSound.centerCoordinate.longitude).to(beCloseTo(-122.49868405298474))
     }
+
+// WIP Fix for #777
+//    func testDecoderError() async throws {
+//        let dataLoader = regionsAPIService.dataLoader as! MockDataLoader
+//        stubRegions(dataLoader: dataLoader, fixtureFile: "decoder-failure__regions-v3.json")
+//
+//        let response = try await regionsAPIService.getRegions(apiPath: regionsAPIPath)
+//
+//        let regions = response.list
+//        expect(regions.count) == 17
+//    }
 }

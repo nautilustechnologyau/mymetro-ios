@@ -32,6 +32,8 @@ class TripViewController: UIViewController,
         self.tripConvertible = tripConvertible
         
         super.init(nibName: nil, bundle: nil)
+
+        registerTraitChangeCallback()
     }
     
     init(application: Application, arrivalDeparture: ArrivalDeparture) {
@@ -39,6 +41,8 @@ class TripViewController: UIViewController,
         self.tripConvertible = TripConvertible(arrivalDeparture: arrivalDeparture)
         
         super.init(nibName: nil, bundle: nil)
+
+        registerTraitChangeCallback()
     }
     
     required init?(coder: NSCoder) {
@@ -48,7 +52,14 @@ class TripViewController: UIViewController,
     deinit {
         enableIdleTimer()
     }
-    
+
+    private func registerTraitChangeCallback() {
+        let sizeTraits: [UITrait] = [UITraitVerticalSizeClass.self, UITraitHorizontalSizeClass.self, UITraitPreferredContentSizeCategory.self]
+        registerForTraitChanges(sizeTraits) { (self: Self, _) in
+            self.updateTitleView()
+        }
+    }
+
     // MARK: - UIViewController
     
     lazy var reloadButton: UIBarButtonItem = {
@@ -63,11 +74,8 @@ class TripViewController: UIViewController,
         super.viewDidLoad()
         
         // Don't show user location if accuracy is reduced to avoid user confusion.
-        if #available(iOS 14, *) {
-            mapView.showsUserLocation = application.locationService.isLocationUseAuthorized && application.locationService.accuracyAuthorization == .fullAccuracy
-        } else {
-            mapView.showsUserLocation = application.locationService.isLocationUseAuthorized
-        }
+        mapView.showsUserLocation = application.locationService.isLocationUseAuthorized && application.locationService.accuracyAuthorization == .fullAccuracy
+
         mapView.showsTraffic = application.mapRegionManager.mapViewShowsTraffic
         mapView.showsScale = application.mapRegionManager.mapViewShowsScale
         application.mapRegionManager.registerAnnotationViews(mapView: mapView)

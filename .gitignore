@@ -6,15 +6,16 @@ DerivedData/
 Apps/**/Info.plist
 Apps/**/*.entitlements
 TodayView/**/*.entitlements
+OBAWidget/**/*.entitlements
 OBAKit/Info.plist
 OBAKitCore/Info.plist
 OBAKitTests/Info.plist
 TodayView/Info.plist
+OBAWidget/Info.plist
 /project.yml
 
 ## SwiftPM
 OBAKit.xcodeproj/**
-!OBAKit.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 ## Various settings
 *.pbxuser
@@ -64,3 +65,4 @@ OBAKit/Theme/OBAKit.xcassets/TransportGlyphs/.DS_Store
 
 
 OBAKitTests.xcresult
+.DS_Store

@@ -35,16 +35,6 @@ public extension Bundle {
     /// A helper method for easily accessing the bundle's `NSUserActivityTypes`.
     var userActivityTypes: [String]? { optionalValue(for: "NSUserActivityTypes", type: [String].self) }
 
-    /// A helper method for accessing the bundle's `DeepLinkServerBaseAddress`
-    var deepLinkServerBaseAddress: URL? {
-        guard
-            let dict = OBAKitConfig,
-            let str = dict["DeepLinkServerBaseAddress"] as? String
-        else { return nil }
-
-        return URL(string: str)
-    }
-
     /// A helper method for accessing the bundle's `Donations.Enabled` setting
     var donationsEnabled: Bool {
         guard let dict = donationsConfig, let val = dict["Enabled"] as? Bool else {
@@ -52,39 +42,6 @@ public extension Bundle {
         }
 
         return val
-    }
-
-    /// A helper method for accessing the bundle's `Donations.ApplePayMerchantID` setting.
-    var applePayMerchantID: String? {
-        guard let dict = donationsConfig else {
-            return nil
-        }
-
-        return dict["ApplePayMerchantID"] as? String
-    }
-
-    /// A helper method for accessing the bundle's `Donations.StripePublishableKey.production` value, if defined.
-    var stripePublishableProductionKey: String? {
-        guard
-            let dict = donationsConfig,
-            let keys = dict["StripePublishableKeys"] as? [String: String]
-        else {
-            return nil
-        }
-
-        return keys["production"]
-    }
-
-    /// A helper method for accessing the bundle's `Donations.StripePublishableKeys.test` value, if defined.
-    var stripePublishableTestKey: String? {
-        guard
-            let dict = donationsConfig,
-            let keys = dict["StripePublishableKeys"] as? [String: String]
-        else {
-            return nil
-        }
-
-        return keys["test"]
     }
 
     var donationManagementPortal: URL? {

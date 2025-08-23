@@ -91,7 +91,7 @@ open class CoreApplication: NSObject,
     }
 
     /// This function reloads the REST API and Obaco Services.
-    private func refreshServices() {
+    public func refreshServices() {
         refreshRESTAPIService()
         refreshObacoService()
         apiServicesRefreshed()
@@ -147,7 +147,7 @@ open class CoreApplication: NSObject,
     private func refreshObacoService() {
         guard
             let region = regionsService.currentRegion,
-            let baseURL = config.obacoBaseURL
+            let baseURL = region.sidecarBaseURL
         else { return }
 
         let configuration = APIServiceConfiguration(baseURL: baseURL, apiKey: config.apiKey, uuid: userUUID, appVersion: config.appVersion, regionIdentifier: region.regionIdentifier)

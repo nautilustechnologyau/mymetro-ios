@@ -46,7 +46,6 @@ targets:
                 NSExceptionAllowsInsecureHTTPLoads: true
             }
           }
-        NSCameraUsageDescription: This app uses Stripe to process credit cards. You can use Stripe to scan your credit card number with your camera.
         NSHumanReadableCopyright: © Open Transit Software Foundation
         NSUserActivityTypes:
           - org.onebusaway.iphone.user_activity.stop
@@ -55,14 +54,9 @@ targets:
           AppDevelopersEmailAddress: iphone-app@onebusaway.org
           AppGroup: group.org.onebusaway.iphone
           BundledRegionsFileName: regions.json
-          DeepLinkServerBaseAddress: https://onebusaway.co
           Donations:
             Enabled: true
-            ApplePayMerchantID: merchant.org.onebusaway.iphone
             DonationManagementPortal: "https://onebusaway.co/manage-donations"
-            StripePublishableKeys:
-              test: pk_test_51O20R8BsTfxG3EeliQswtDI6etwUu6cdYX7AIT2HkyI7iMbI2Ltqz0R06EkM7SmRTYJfOPwum1iTJgrJpoLoB8ii00eUXFwHjT
-              production: pk_live_51O20R8BsTfxG3EelVtkEOa5zmx9MPoAXi2Jrcx8PvBUwYvKlXEJdL3nYHF7Vmd1UZ6tKyrZrKUx89bwMmSaN5HIr0096SVUJts
           ExtensionURLScheme: onebusaway
           PrivacyPolicyURL: https://onebusaway.org/privacy/
           PushNotificationAPIKey: d5d0d28a-6091-46cd-9627-0ce01ffa9f9e
@@ -85,7 +79,6 @@ targets:
         OBAKitConfig:
           AppGroup: group.org.onebusaway.iphone
           BundledRegionsFileName: regions.json
-          DeepLinkServerBaseAddress: https://onebusaway.co
           ExtensionURLScheme: onebusaway
           RESTServerAPIKey: org.onebusaway.iphone
           RegionsServerBaseAddress: https://regions.onebusaway.org
@@ -94,14 +87,33 @@ targets:
       base:
         DEVELOPMENT_TEAM: 4ZQCMA634J
         PRODUCT_BUNDLE_IDENTIFIER: org.onebusaway.iphone.TodayView
-
+  OBAWidget:
+    sources: ["Apps/OneBusAway/Assets.xcassets"]
+    entitlements:
+      properties:
+        com.apple.security.application-groups:
+          - group.org.onebusaway.iphone
+    info:
+      properties:
+        CFBundleDisplayName: OneBusAway
+        OBAKitConfig:
+          AppGroup: group.org.onebusaway.iphone
+          BundledRegionsFileName: regions.json
+          ExtensionURLScheme: onebusaway
+          RESTServerAPIKey: org.onebusaway.iphone
+          RegionsServerBaseAddress: https://regions.onebusaway.org
+          RegionsServerAPIPath: /regions-v3.json
+    settings:
+      base:
+        DEVELOPMENT_TEAM: 4ZQCMA634J
+        PRODUCT_BUNDLE_IDENTIFIER: org.onebusaway.iphone.OBAWidget
 include:
   - path: Apps/Shared/app_shared.yml
   - path: Apps/Shared/analytics_fx_config.yml
   - path: Apps/Shared/push_config.yml
-  - path: Apps/Shared/donations_config.yml
   - path: OBAKitCore/project.yml
   - path: OBAKit/project.yml
   - path: OBAKitTests/project.yml
   - path: OBAKitUITests/project.yml
   - path: TodayView/project.yml
+  - path: OBAWidget/project.yml
