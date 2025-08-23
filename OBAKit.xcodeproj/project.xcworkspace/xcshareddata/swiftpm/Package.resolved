@@ -1,4 +1,5 @@
 {
+  "originHash" : "0265f293452629affe7db2ccb5cee14adcad263975ea7f056bade9a4d921d2fe",
   "pins" : [
     {
       "identity" : "abseil-cpp-swiftpm",
@@ -77,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SCENEE/FloatingPanel.git",
       "state" : {
-        "revision" : "d6bbf92339c9c002ba66895878ba0acaa7c1a05a",
-        "version" : "2.6.0"
+        "revision" : "22d46c526084724a718b8c39ab77f12452712cc7",
+        "version" : "2.8.3"
       }
     },
     {
@@ -194,8 +195,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/stripe/stripe-ios-spm",
       "state" : {
-        "revision" : "d1e98b0acad316d1bf7d30bfdf34ec8ca9ca1e15",
-        "version" : "23.18.2"
+        "revision" : "5ee61da37766ab74bf213805483fb2c6647e69ae",
+        "version" : "24.20.0"
       }
     },
     {
@@ -235,5 +236,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
