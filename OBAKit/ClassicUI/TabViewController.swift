@@ -31,6 +31,7 @@ public class TabViewController: UITabBarController {
         super.init(nibName: nil, bundle: nil)
         
         // self.application.viewRouter.rootController = self
+        self.tabBar.isTranslucent = false
         
         self.view.translatesAutoresizingMaskIntoConstraints = false
         

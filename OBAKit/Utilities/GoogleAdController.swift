@@ -15,15 +15,15 @@ import GoogleMobileAds
 import OBAKitCore
 
 class GoogleAdController: NSObject,
-                          GADBannerViewDelegate,
-                          GADFullScreenContentDelegate {
+                          BannerViewDelegate,
+                          FullScreenContentDelegate {
 
     let logger = os.Logger(subsystem: "au.mymetro.iphone", category: "GoogleAdController")
 
     static var shared: GoogleAdController?
 
-    var bannerView: GADBannerView!
-    var interstitialAd: GADInterstitialAd?
+    var bannerView: BannerView!
+    var interstitialAd: InterstitialAd?
     var interstitialDisplayedTime: Int64 = 0
     var stopShowCount: Int64 = 0
 
@@ -32,27 +32,27 @@ class GoogleAdController: NSObject,
     let adShowProbablity: Float = 0.4
     var rootViewController: UIViewController?
     var belowViewController: UIViewController?
-    
+
     static var adsFreeSubscription: Bool = true
-    
+
     var entitlementManager: EntitlementManager
-    
+
     static func getInstance(application: Application) -> GoogleAdController {
         if shared == nil {
             shared = GoogleAdController(application: application)
         }
-        
+
         return shared!
     }
 
     init(application: Application) {
         self.entitlementManager = application.entitlementManager
     }
-    
+
     func setEntitlementManager(entitlementManager: EntitlementManager) {
         self.entitlementManager = entitlementManager
     }
-    
+
     // MARK: - Banner Ad Helper Methods
 
     public func setRootViewControllers(viewController: UIViewController) {
@@ -80,7 +80,7 @@ class GoogleAdController: NSObject,
         }
 
         // In this case, we instantiate the banner with desired ad size.
-        bannerView = GADBannerView(adSize: GADAdSizeBanner)
+        bannerView = BannerView(adSize: AdSizeBanner)
         bannerView.delegate = self
         bannerView.rootViewController = rootViewController
         bannerView.adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADBannerAdUnitID") as? String
@@ -89,9 +89,9 @@ class GoogleAdController: NSObject,
     }
 
     public func initInterstitialAd() {
-        let request = GADRequest()
+        let request = Request()
         let adUnitID = Bundle.main.object(forInfoDictionaryKey: "GADInterstitialAdUnitID") as? String ?? ""
-        GADInterstitialAd.load(withAdUnitID: adUnitID,
+        InterstitialAd.load(with: adUnitID,
                                request: request,
                                completionHandler: {[self] ad, error in
                                             if let error = error {
@@ -103,14 +103,14 @@ class GoogleAdController: NSObject,
                                     })
     }
 
-    public func addBannerViewToView(_ bannerView: GADBannerView) {
+    public func addBannerViewToView(_ bannerView: BannerView) {
         if bannerView.isDescendant(of: (rootViewController?.view)!) {
             return
         }
 
         bannerView.translatesAutoresizingMaskIntoConstraints = false
         if belowViewController != nil {
-            //rootViewController!.view.addSubview(bannerView)
+            // rootViewController!.view.addSubview(bannerView)
             rootViewController!.view.insertSubview(bannerView, aboveSubview: belowViewController!.view)
         } else {
             rootViewController!.view.addSubview(bannerView)
@@ -143,10 +143,10 @@ class GoogleAdController: NSObject,
         // Here the current interface orientation is used. If the ad is being preloaded
         // for a future orientation change or different orientation, the function for the
         // relevant orientation should be used.
-        bannerView.adSize = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(viewWidth)
+        bannerView.adSize = currentOrientationAnchoredAdaptiveBanner(width: viewWidth)
 
         // Step 4 - Create an ad request and load the adaptive banner ad.
-        bannerView.load(GADRequest())
+        bannerView.load(Request())
         logger.debug("GADRequest sent")
     }
 
@@ -189,7 +189,7 @@ class GoogleAdController: NSObject,
     }
 
     func showInterstitialAd(viewController: UIViewController) {
-        interstitialAd?.present(fromRootViewController: viewController)
+        interstitialAd?.present(from: viewController)
         interstitialDisplayedTime = Int64(Date().timeIntervalSince1970)
         stopShowCount = 0
     }
@@ -222,7 +222,7 @@ class GoogleAdController: NSObject,
 
     // MARK: - Banner View Delegates (GADBannerViewDelegate)
 
-    public func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
+    public func bannerViewDidReceiveAd(_ bannerView: BannerView) {
         // Add banner to view and add constraints as above.
         bannerView.alpha = 0
         UIView.animate(withDuration: 1, animations: {
@@ -232,43 +232,43 @@ class GoogleAdController: NSObject,
         // hideBannerAd()
     }
 
-    public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
+    public func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
         logger.debug("bannerView:didFailToReceiveAdWithError: \(error.localizedDescription)")
         hideBannerAd()
-        //loadBannerAd()
+        // loadBannerAd()
     }
 
-    public func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {
+    public func bannerViewDidRecordImpression(_ bannerView: BannerView) {
         logger.debug("bannerViewDidRecordImpression")
     }
 
-    public func bannerViewWillPresentScreen(_ bannerView: GADBannerView) {
+    public func bannerViewWillPresentScreen(_ bannerView: BannerView) {
         logger.debug("bannerViewWillPresentScreen")
     }
 
-    public func bannerViewWillDismissScreen(_ bannerView: GADBannerView) {
+    public func bannerViewWillDismissScreen(_ bannerView: BannerView) {
         logger.debug("bannerViewWillDIsmissScreen")
     }
 
-    public func bannerViewDidDismissScreen(_ bannerView: GADBannerView) {
+    public func bannerViewDidDismissScreen(_ bannerView: BannerView) {
         logger.debug("bannerViewDidDismissScreen")
     }
 
     // MARK: - Interstitial Ad Delegates (GADFullScreenContentDelegate)
 
     /// Tells the delegate that the ad failed to present full screen content.
-    public func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+    public func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
         interstitialAd = nil
         logger.debug("Ad did fail to present full screen content: \(error.localizedDescription)")
     }
 
     /// Tells the delegate that the ad will present full screen content.
-    public func adWillPresentFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+    public func adWillPresentFullScreenContent(_ ad: FullScreenPresentingAd) {
         logger.debug("Ad will present full screen content.")
     }
 
     /// Tells the delegate that the ad dismissed full screen content.
-    public func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+    public func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         logger.debug("Ad did dismiss full screen content. Loading again.")
         // load ad again
         interstitialAd = nil

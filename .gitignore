@@ -15,7 +15,7 @@ OBAWidget/Info.plist
 /project.yml
 
 ## SwiftPM
-OBAKit.xcodeproj/**
+OBAKit.xcodeproj*/**
 
 ## Various settings
 *.pbxuser

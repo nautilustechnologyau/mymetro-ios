@@ -60,8 +60,7 @@ public class BookmarksViewController: UIViewController,
         tabBarItem.image = Icons.bookmarksTabIcon
         tabBarItem.selectedImage = Icons.bookmarksSelectedTabIcon
 
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .edit, target: self, action: #selector(manageGroups))
-        navigationItem.leftBarButtonItem!.imageInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 0)
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: OBALoc("bookmarks_controller.groups_button_title", value: "Edit", comment: "Groups button title in Bookmarks controller"), style: .plain, target: self, action: #selector(manageGroups))
 
         application.userDefaults.register(defaults: [
             userDefaultsKeys.sortBookmarksByGroup.rawValue: true

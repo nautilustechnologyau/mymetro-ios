@@ -559,7 +559,7 @@ public class Application: CoreApplication, PushServiceDelegate {
 
     // MARK: - Google Ad Initialisation
     @objc public func initialiseGoogleAd() {
-        GADMobileAds.sharedInstance().start(completionHandler: nil)
+        MobileAds.shared.start(completionHandler: nil)
     }
 
     // MARK: - Error Visualization

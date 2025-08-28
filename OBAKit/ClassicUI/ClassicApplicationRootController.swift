@@ -36,7 +36,7 @@ public class ClassicApplicationRootController: UIViewController {
 
         super.init(nibName: nil, bundle: nil)
 
-        self.tabBar.isTranslucent = false
+        //self.tabBar.isTranslucent = false
 
         self.application.viewRouter.rootController = self
         self.view.backgroundColor = ThemeColors.shared.brand // ThemeColors.shared.systemBackground
